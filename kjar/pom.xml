@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.github.nikola352.chess_endgame_analyzer</groupId>
+	<artifactId>kjar</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>kjar</name>
+	<description>Knowledge base for Chess Endgame Analyzer</description>
+	<properties>
+		<java.version>11</java.version>
+		<drools.version>7.49.0.Final</drools.version>
+		<chess_endgame_analyzer.version>0.0.1-SNAPSHOT</chess_endgame_analyzer.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding> 
+		<maven.compiler.source>11</maven.compiler.source>
+		<maven.compiler.target>11</maven.compiler.target>
+		<failOnMissingWebXml>false</failOnMissingWebXml>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.kie</groupId>
+			<artifactId>kie-api</artifactId>
+			<version>${drools.version}</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.drools</groupId>
+			<artifactId>drools-core</artifactId>
+			<version>${drools.version}</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.drools</groupId>
+			<artifactId>drools-compiler</artifactId>
+			<version>${drools.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.github.nikola352.chess_endgame_analyzer</groupId>
+			<artifactId>model</artifactId>
+			<version>${chess_endgame_analyzer.version}</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.8.1</version>
+				<configuration>
+					<source>11</source>
+					<target>11</target>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
