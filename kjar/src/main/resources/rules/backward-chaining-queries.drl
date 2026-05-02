@@ -1,0 +1,92 @@
+package rules;
+
+import com.github.nikola352.chess_endgame_analyzer.model.models.Piece;
+import com.github.nikola352.chess_endgame_analyzer.model.models.Position;
+
+// Query 1 - Recursive king path reachability via AdjacentSquare graph.
+// Base case: from == to (king already at destination).
+// Recursive case: step to an adjacent square, decrement depth, recurse.
+// AdjacentSquare.from conflicts with the Drools 'from' CE keyword; use explicit
+// binding $adjFrom : from inside the pattern, then compare via eval.
+query "canKingReach"(String from, String to, int depth)
+    eval(from.equals(to))
+    or
+    (
+        eval(depth > 0)
+        and AdjacentSquare($adjFrom : from, $next : to)
+        and eval($adjFrom.equals(from))
+        and canKingReach($next, to, depth - 1;)
+    )
+end
+
+// Query 2 - Draw when the defending king holds direct opposition and the attacker must move.
+// DIRECT_OPPOSITION.side = the holder = the side NOT to move when the fact was inserted.
+// Draw holds when the holder is the defender, i.e. the pawn owner does NOT hold the opposition.
+query "isDirectOppositionDraw"
+    DerivedFact(type == "KING_PAWN_ENDGAME")
+    DerivedFact(type == "DIRECT_OPPOSITION", $holderSide : side)
+    Piece(type == Piece.Type.PAWN, $attackSide : color)
+    eval(!$attackSide.equals($holderSide))
+    not DerivedFact(type == "KEY_SQUARE_OCCUPIED")
+end
+
+// Query 3 - Draw when wrong-color bishop and defending king can reach the safe promotion corner.
+// Depth 4 matches the Chebyshev distance <= 4 threshold in forward rule 28.
+query "isWrongColorBishopDraw"
+    DerivedFact(type == "WRONG_COLOR_BISHOP", $attackSide : side)
+    $defSide : String() from (Piece.Color.WHITE.equals($attackSide) ? Piece.Color.BLACK : Piece.Color.WHITE)
+    Piece(type == Piece.Type.PAWN, color == $attackSide, square matches "[ah][1-8]", $pFile : square.substring(0,1))
+    $corner : String() from (Piece.Color.WHITE.equals($attackSide) ? $pFile + "8" : $pFile + "1")
+    Piece(type == Piece.Type.KING, color == $defSide, $dkSq : square)
+    canKingReach($dkSq, $corner, 4;)
+end
+
+// Query 4 - Draw when Philidor defense is set up and the defending side is to move.
+// PHILIDOR_CANDIDATE already encodes: defending king on 8th rank, defending rook on 6th rank.
+query "isPhilidorDraw"
+    DerivedFact(type == "PHILIDOR_CANDIDATE", $attackSide : side)
+    Position(sideToMove != $attackSide)
+end
+
+// Query 5 - Draw when rook pawn on edge, no key square occupied, and defending king can
+// reach the promotion corner within 3 moves.
+// Depth 3 matches the Chebyshev distance <= 3 threshold in forward rule 29c.
+query "isRookPawnEdgeDraw"
+    DerivedFact(type == "ROOK_PAWN_EDGE", $attackSide : side)
+    not DerivedFact(type == "KEY_SQUARE_OCCUPIED")
+    Piece(type == Piece.Type.PAWN, color == $attackSide, square matches "[ah][1-8]", $pFile : square.substring(0,1))
+    $defSide : String() from (Piece.Color.WHITE.equals($attackSide) ? Piece.Color.BLACK : Piece.Color.WHITE)
+    $corner : String() from (Piece.Color.WHITE.equals($attackSide) ? $pFile + "8" : $pFile + "1")
+    Piece(type == Piece.Type.KING, color == $defSide, $dkSq : square)
+    canKingReach($dkSq, $corner, 3;)
+end
+
+// Query 6 - Stalemate resource exists in queen vs advanced pawn positions.
+// Branch A: rook pawn on edge file (stalemate in corner).
+// Branch B: bishop pawn (c/f file) with defending king blocking on the same file.
+query "isStalematePossible"
+    DerivedFact(type == "QUEEN_VS_ADVANCED_PAWN", $attackSide : side)
+    $defSide : String() from (Piece.Color.WHITE.equals($attackSide) ? Piece.Color.BLACK : Piece.Color.WHITE)
+    (
+        exists Piece(type == Piece.Type.PAWN, color == $defSide, square matches "[ah][1-8]")
+        or
+        (
+            Piece(type == Piece.Type.PAWN, color == $defSide, $pSq : square, square matches "[cf][1-8]")
+            and Piece(type == Piece.Type.KING, color == $defSide, $dkSq : square)
+            and eval($dkSq.charAt(0) == $pSq.charAt(0))
+        )
+    )
+end
+
+// Query 7 - Top-level draw query: the position is a theoretical draw if any sub-query succeeds.
+query "isTheoreticalDraw"
+    isDirectOppositionDraw()
+    or
+    isWrongColorBishopDraw()
+    or
+    isPhilidorDraw()
+    or
+    isRookPawnEdgeDraw()
+    or
+    isStalematePossible()
+end
