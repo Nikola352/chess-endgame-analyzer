@@ -1,0 +1,88 @@
+package rules;
+
+import com.github.nikola352.chess_endgame_analyzer.model.models.Piece;
+
+// Rule 44 - Identify Best Move
+// Fires after violation rules (salience 10) have had a chance to mark BAD moves.
+rule "Identify Best Move"
+salience 0
+when
+    $r : Recommendation()
+    $cm : CandidateMove( quality == null || quality == "" )
+    accumulate(
+        CandidateMove( quality == "BAD" );
+        $bad : count(1);
+        $bad == 0
+    )
+then
+    modify( $cm ) {
+        setQuality( "BEST" ),
+        setExplanation( "This move follows the " + $r.getTechnique() + " principle and is consistent with the theoretical plan. (" + $r.getBookReference() + ")" )
+    }
+end
+
+// Rule 45 - Mark Move as Bad: Abandons Opposition (salience 10)
+// A king move that breaks the direct opposition when the attacker holds it.
+rule "Bad Move - Abandons Opposition"
+salience 10
+when
+    DerivedFact( type == "DIRECT_OPPOSITION", $holder : side )
+    $cm : CandidateMove( piece == Piece.Type.KING, $from : fromSquare, $to : toSquare,
+                         quality != "BAD" )
+    Piece( type == Piece.Type.KING, color != $holder, $oppKingSq : square )
+    // After the move, check if the new position still holds opposition (same file/rank with 2-square gap).
+    // If neither condition is true, the opposition is lost.
+    not ( Boolean( booleanValue == true ) from (
+        ( $to.charAt(0) == $oppKingSq.charAt(0) && Math.abs($to.charAt(1) - $oppKingSq.charAt(1)) == 2 )
+     || ( $to.charAt(1) == $oppKingSq.charAt(1) && Math.abs($to.charAt(0) - $oppKingSq.charAt(0)) == 2 )
+    ) )
+then
+    modify( $cm ) {
+        setQuality( "BAD" ),
+        setExplanation( "Moving to " + $to + " abandons the direct opposition. The defending king can now advance without being faced. Maintain the opposition — do not step sideways unless it creates a new diagonal opposition." )
+    }
+end
+
+// Rule 46 - Mark Move as Bad: King Moves Away from Key Square Path (salience 10)
+rule "Bad Move - Away from Key Square"
+salience 10
+when
+    DerivedFact( type == "WINNING_POSITION" )
+    DerivedFact( type == "KING_PAWN_ENDGAME" )
+    not DerivedFact( type == "KEY_SQUARE_OCCUPIED" )
+    $cm : CandidateMove( piece == Piece.Type.KING, $from : fromSquare, $to : toSquare,
+                         quality != "BAD" )
+    $ks : KeySquare( $ksSq : square )
+    // Move increases Chebyshev distance to this key square.
+    accumulate(
+        KeySquare( $nearSq : square,
+                   Math.max( Math.abs($to.charAt(0) - $nearSq.charAt(0)),
+                             Math.abs($to.charAt(1) - $nearSq.charAt(1)) )
+                   >
+                   Math.max( Math.abs($from.charAt(0) - $nearSq.charAt(0)),
+                             Math.abs($from.charAt(1) - $nearSq.charAt(1)) ) );
+        $farther : count(1)
+    )
+    accumulate(
+        KeySquare();
+        $total : count(1)
+    )
+    // Move goes farther from ALL key squares.
+    Boolean( booleanValue == true ) from ( $farther >= $total )
+then
+    modify( $cm ) {
+        setQuality( "BAD" ),
+        setExplanation( "Moving to " + $to + " delays the king's approach to the key squares. This wastes a tempo and may allow the defending king to establish a blocking position in front of the pawn. Move the king toward the key squares instead." )
+    }
+end
+
+// Rule 47 - Append Strategic Plan to Bad Move Explanation
+rule "Explain Bad Move with Strategic Plan"
+when
+    $cm : CandidateMove( quality == "BAD" )
+    $r  : Recommendation()
+then
+    modify( $cm ) {
+        setExplanation( $cm.getExplanation() + " Correct approach: " + $r.getPlan() + " (" + $r.getBookReference() + ")" )
+    }
+end

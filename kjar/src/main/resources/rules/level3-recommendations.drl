@@ -1,0 +1,180 @@
+package rules;
+
+import com.github.nikola352.chess_endgame_analyzer.model.models.Piece;
+import com.github.nikola352.chess_endgame_analyzer.model.models.Position;
+
+// Rule 35 - Recommend King Approach to Key Square
+rule "Recommend King to Key Square"
+when
+    DerivedFact( type == "WINNING_POSITION", $s : side )
+    DerivedFact( type == "KING_PAWN_ENDGAME" )
+    not DerivedFact( type == "KEY_SQUARE_OCCUPIED" )
+    not DerivedFact( type == "PAWN_PROMOTES_FREELY" )
+    not Recommendation()
+then
+    insert( new Recommendation(
+        "KING_TO_KEY_SQUARE",
+        "Advance the attacking king toward the key squares for this pawn. Maneuver the king to one of the key squares (two ranks ahead of the pawn, spanning its file and adjacent files). Push the pawn only once the king has secured a key square — premature pawn advances waste tempo and may allow the defending king to blockade.",
+        "de la Villa, Ending 3, p.33"
+    ));
+end
+
+// Rule 35b - Recommend Advancing the Pawn (Promotes Freely)
+rule "Recommend Advance Pawn - Promotes Freely"
+when
+    DerivedFact( type == "WINNING_POSITION" )
+    DerivedFact( type == "PAWN_PROMOTES_FREELY" )
+    not Recommendation()
+then
+    insert( new Recommendation(
+        "ADVANCE_PAWN",
+        "The defending king cannot catch the pawn — advance the pawn directly toward promotion. No king maneuver is needed. Push the pawn one rank at a time; it queens without opposition.",
+        "de la Villa, Ending 1, p.27"
+    ));
+end
+
+// Rule 36 - Recommend Maintaining Direct Opposition
+rule "Recommend Maintain Opposition"
+when
+    DerivedFact( type == "DIRECT_OPPOSITION" )
+    DerivedFact( type == "WINNING_POSITION" )
+    not Recommendation()
+then
+    insert( new Recommendation(
+        "MAINTAIN_OPPOSITION",
+        "The attacking king holds the direct opposition. Do not step aside — maintain it. The defending king must concede ground or allow a tempo gain. When the defender moves sideways, follow diagonally to maintain the facing relationship. Advance the pawn when the defender has no useful response.",
+        "de la Villa, Ending 2, p.29; Silman, Part Two (Class E), p.42"
+    ));
+end
+
+// Rule 37 - Recommend Lucena Bridge Building
+rule "Recommend Lucena Bridge"
+when
+    DerivedFact( type == "LUCENA_WIN" )
+    not Recommendation()
+then
+    insert( new Recommendation(
+        "LUCENA_BRIDGE",
+        "Execute The Bridge technique: (1) Move the rook to the 4th rank, cutting off side checks from the defending rook. (2) Advance the attacking king out from behind the pawn using the rook as a shield — when the defending rook checks from the side, interpose the rook one step at a time. (3) Complete the bridge rank by rank until the king escapes the checks and the pawn promotes. This is the most important winning technique in rook endgames.",
+        "de la Villa, Ending 53, p.125-127"
+    ));
+end
+
+// Rule 38 - Recommend Philidor Defense Maintenance
+rule "Recommend Philidor Defense"
+when
+    DerivedFact( type == "PHILIDOR_CANDIDATE", $s : side )
+    DerivedFact( type == "PHILIDOR_DRAW" )
+    Position( sideToMove != $s )
+    not Recommendation()
+then
+    insert( new Recommendation(
+        "PHILIDOR_DEFENSE",
+        "Keep the defending king in front of the pawn and the rook on the 3rd rank (6th absolute for white attacker). This is the Philidor defense. The rook waits on that rank while the pawn has not advanced. CRITICAL: the moment the pawn advances to the 6th rank, switch immediately to back-rank (rear) checks. Do not move the rook away from the 3rd rank prematurely — that concedes the draw.",
+        "de la Villa, Ending 52, p.124-125"
+    ));
+end
+
+// Rule 39 - Recommend Corner Defense (Wrong Color Bishop)
+rule "Recommend Wrong Color Corner Defense"
+when
+    DerivedFact( type == "WRONG_COLOR_BISHOP" )
+    DerivedFact( type == "THEORETICAL_DRAW" )
+    not Recommendation()
+then
+    insert( new Recommendation(
+        "WRONG_COLOR_CORNER",
+        "Steer the defending king to the promotion corner (the corner the bishop cannot control). Once the defending king reaches that corner, hold it there. Any pawn push gives stalemate — the bishop has no influence over a square of the wrong color.",
+        "Silman, Part Four (Class C), p.112; de la Villa, Ending 4, p.37"
+    ));
+end
+
+// Rule 40a - Recommend Corner Defence (Rook vs Bishop, draw side)
+rule "Recommend Rook vs Bishop Corner Defence"
+when
+    DerivedFact( type == "ROOK_VS_BISHOP" )
+    DerivedFact( type == "LIKELY_DRAW" )
+    not Recommendation()
+then
+    insert( new Recommendation(
+        "ROOK_VS_BISHOP_CORNER_DEFENCE",
+        "Keep the bishop on its long diagonal and steer the king to the corner of the SAME colour as the bishop. Never allow the king to be trapped in the opposite-colour corner — the bishop cannot defend that corner and checkmate can be forced there.",
+        "de la Villa, Endings 6-7, p.39-40"
+    ));
+end
+
+// Rule 40b - Recommend Rook vs Bishop Attack (winning side)
+rule "Recommend Rook vs Bishop Attack"
+when
+    DerivedFact( type == "ROOK_VS_BISHOP" )
+    DerivedFact( type == "WINNING_POSITION", $s : side )
+    not Recommendation()
+then
+    insert( new Recommendation(
+        "ROOK_VS_BISHOP_ATTACK",
+        "Drive the defending king to the corner of the OPPOSITE colour from the bishop. Use rook checks to cut off the bishop's long diagonal. Once the king is in the wrong corner and the bishop cannot defend, bring your king in to assist. Avoid premature checks that let the bishop escape to a better diagonal.",
+        "de la Villa, Ending 6, p.39"
+    ));
+end
+
+// Rule 41 - Recommend Queen Triangulation
+rule "Recommend Queen Triangulation"
+when
+    DerivedFact( type == "QUEEN_VS_ADVANCED_PAWN" )
+    DerivedFact( type == "WINNING_POSITION" )
+    not Recommendation()
+then
+    insert( new Recommendation(
+        "QUEEN_TRIANGULATION",
+        "Do NOT give random checks. Use queen triangulation: (1) Give a check that forces the defending king to step in front of its own pawn, (2) During the forced pause (the king cannot advance), bring your king one step closer, (3) Repeat until the pawn is won. AVOID stalemate — always ensure the defending king has at least one escape square before giving check.",
+        "de la Villa, Ending 16, p.59; Silman, Part Four (Class C), 'Queen vs. Pawn on 7th Rank'"
+    ));
+end
+
+// Rule 42 - Generic King Activation (fallback)
+rule "Recommend Generic King Activation"
+salience -5
+when
+    DerivedFact( type == "WINNING_POSITION" )
+    not Recommendation()
+then
+    insert( new Recommendation(
+        "KING_ACTIVATION",
+        "Activate the king immediately — in endgames the king is a fighting piece, not a spectator. Centralize it toward the pawn structure and key squares. Avoid placing the king passively at the edge of the board. The side that activates the king faster typically converts the advantage.",
+        "General endgame principle"
+    ));
+end
+
+// Rule 43 - Philidor Opportunity Missed (salience 10 to fire before normal evaluation)
+// Defender has king in front of pawn but rook is on wrong rank.
+rule "Philidor Opportunity Missed - White attacker"
+salience 10
+when
+    DerivedFact( type == "ROOK_PAWN_VS_ROOK", side == Piece.Color.WHITE )
+    Piece( type == Piece.Type.PAWN, color == Piece.Color.WHITE, square matches ".[1-5]" )
+    Piece( type == Piece.Type.KING, color == Piece.Color.BLACK, square matches ".[8]" )
+    not Piece( type == Piece.Type.ROOK, color == Piece.Color.BLACK, square matches ".[6]" )
+    not DerivedFact( type == "PHILIDOR_MISSED" )
+then
+    insert( new DerivedFact(
+        "PHILIDOR_MISSED", Piece.Color.BLACK,
+        "Philidor defense is available but not set up: defending king is in front of the pawn but the rook is on the wrong rank. The rook must move to the 3rd rank (6th absolute) immediately to hold the draw. (de la Villa, Ending 52, p.124)",
+        3, "de la Villa, Ending 52, p.124"
+    ));
+end
+
+rule "Philidor Opportunity Missed - Black attacker"
+salience 10
+when
+    DerivedFact( type == "ROOK_PAWN_VS_ROOK", side == Piece.Color.BLACK )
+    Piece( type == Piece.Type.PAWN, color == Piece.Color.BLACK, square matches ".[4-8]" )
+    Piece( type == Piece.Type.KING, color == Piece.Color.WHITE, square matches ".[1]" )
+    not Piece( type == Piece.Type.ROOK, color == Piece.Color.WHITE, square matches ".[3]" )
+    not DerivedFact( type == "PHILIDOR_MISSED" )
+then
+    insert( new DerivedFact(
+        "PHILIDOR_MISSED", Piece.Color.WHITE,
+        "Philidor defense is available but not set up: defending king is in front of the pawn but the rook is on the wrong rank. The rook must move to the 6th rank (3rd absolute) immediately to hold the draw. (de la Villa, Ending 52, p.124)",
+        3, "de la Villa, Ending 52, p.124"
+    ));
+end

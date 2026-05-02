@@ -1,0 +1,327 @@
+package rules;
+
+import com.github.nikola352.chess_endgame_analyzer.model.models.Piece;
+import com.github.nikola352.chess_endgame_analyzer.model.models.Position;
+
+// Rule 24 - Winning Position: Key Square Occupied
+rule "Winning Position - Key Square Occupied"
+when
+    DerivedFact( type == "KING_PAWN_ENDGAME" )
+    DerivedFact( type == "KEY_SQUARE_OCCUPIED", $s : side )
+    not DerivedFact( type == "WINNING_POSITION", side == $s )
+then
+    insert( new DerivedFact(
+        "WINNING_POSITION", $s,
+        "Attacking king controls a key square — pawn promotion is theoretically guaranteed. (de la Villa, Ending 3, p.33)",
+        2, "de la Villa, Ending 3, p.33"
+    ));
+end
+
+// Rule 25 - Winning Position: Pawn Promotes Freely
+rule "Winning Position - Pawn Promotes Freely"
+when
+    DerivedFact( type == "PAWN_PROMOTES_FREELY", $s : side )
+    not DerivedFact( type == "WINNING_POSITION", side == $s )
+then
+    insert( new DerivedFact(
+        "WINNING_POSITION", $s,
+        "Defending king cannot enter the pawn's promotion square — the pawn queens freely. (de la Villa, Ending 1, p.27)",
+        2, "de la Villa, Ending 1, p.27"
+    ));
+end
+
+// Rule 26 - Lucena Position Confirmed - Win
+// Verify both rooks are still present before committing to the Lucena conclusion.
+rule "Lucena Win Confirmed"
+when
+    DerivedFact( type == "LUCENA_CANDIDATE", $s : side )
+    accumulate(
+        Piece( type == Piece.Type.ROOK );
+        $r : count(1);
+        $r == 2
+    )
+    not DerivedFact( type == "LUCENA_WIN" )
+then
+    insert( new DerivedFact(
+        "LUCENA_WIN", $s,
+        "Lucena position confirmed — attacker wins by bridge-building. (de la Villa, Ending 53, p.125)",
+        2, "de la Villa, Ending 53, p.125"
+    ));
+    insert( new DerivedFact(
+        "WINNING_POSITION", $s,
+        "Lucena position — bridge-building technique wins. (de la Villa, Ending 53, p.125)",
+        2, "de la Villa, Ending 53, p.125"
+    ));
+end
+
+// Rule 27 - Philidor Defense: Theoretical Draw
+// Defending side is to move; PHILIDOR_CANDIDATE already encodes king+rook placement.
+rule "Philidor Draw"
+when
+    DerivedFact( type == "PHILIDOR_CANDIDATE", $s : side )
+    Position( $stm : sideToMove, sideToMove != $s )
+    not DerivedFact( type == "PHILIDOR_DRAW" )
+then
+    insert( new DerivedFact(
+        "PHILIDOR_DRAW", $s,
+        "Philidor defense is correctly set up — the position is a theoretical draw with correct play. (de la Villa, Ending 52, p.124)",
+        2, "de la Villa, Ending 52, p.124"
+    ));
+    insert( new DerivedFact(
+        "THEORETICAL_DRAW", null,
+        "Philidor defense — draw with correct continuation. (de la Villa, Ending 52, p.124)",
+        2, "de la Villa, Ending 52, p.124"
+    ));
+end
+
+// Rule 28 - Wrong Color Bishop: Theoretical Draw (White attacker, defending king near corner)
+rule "Wrong Color Bishop Draw - White attacker"
+when
+    DerivedFact( type == "WRONG_COLOR_BISHOP", side == Piece.Color.WHITE )
+    $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.WHITE, $pFile : square.substring(0,1) )
+    Piece( type == Piece.Type.KING, color == Piece.Color.BLACK, $bkSq : square,
+           Math.max( Math.abs($bkSq.charAt(0) - ($pFile.charAt(0) == 'a' ? 'a' : 'h')),
+                     Math.abs($bkSq.charAt(1) - '8') ) <= 4 )
+    not DerivedFact( type == "THEORETICAL_DRAW" )
+then
+    String corner = $pFile + "8";
+    insert( new DerivedFact(
+        "THEORETICAL_DRAW", null,
+        "Wrong color bishop — defending king can reach the safe corner " + corner + ". Any pawn push results in stalemate. (Silman, Part Four (Class C), p.112; de la Villa, Ending 4, p.37)",
+        2, "Silman, Part Four (Class C), p.112; de la Villa, Ending 4, p.37"
+    ));
+end
+
+// Rule 28b - Wrong Color Bishop: Theoretical Draw (Black attacker)
+rule "Wrong Color Bishop Draw - Black attacker"
+when
+    DerivedFact( type == "WRONG_COLOR_BISHOP", side == Piece.Color.BLACK )
+    $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.BLACK, $pFile : square.substring(0,1) )
+    Piece( type == Piece.Type.KING, color == Piece.Color.WHITE, $wkSq : square,
+           Math.max( Math.abs($wkSq.charAt(0) - ($pFile.charAt(0) == 'a' ? 'a' : 'h')),
+                     Math.abs($wkSq.charAt(1) - '1') ) <= 4 )
+    not DerivedFact( type == "THEORETICAL_DRAW" )
+then
+    String corner = $pFile + "1";
+    insert( new DerivedFact(
+        "THEORETICAL_DRAW", null,
+        "Wrong color bishop — defending king can reach the safe corner " + corner + ". Any pawn push results in stalemate. (Silman, Part Four (Class C), p.112; de la Villa, Ending 4, p.37)",
+        2, "Silman, Part Four (Class C), p.112; de la Villa, Ending 4, p.37"
+    ));
+end
+
+// Rule 29a - Rook+Pawn vs Lone King: Winning (not an edge pawn)
+rule "Rook-Pawn vs King Win - Not Edge Pawn"
+when
+    DerivedFact( type == "ROOK_PAWN_VS_KING", $s : side )
+    not DerivedFact( type == "ROOK_PAWN_EDGE", side == $s )
+    not DerivedFact( type == "WINNING_POSITION", side == $s )
+then
+    insert( new DerivedFact(
+        "WINNING_POSITION", $s,
+        "Rook + pawn vs. lone king — no edge pawn, standard winning technique applies.",
+        2, "de la Villa, Chapters 5-10"
+    ));
+end
+
+// Rule 29b - Rook+Pawn vs Lone King: Winning (edge pawn but defending king far from corner)
+rule "Rook-Pawn vs King Win - Edge Pawn, King Far"
+when
+    DerivedFact( type == "ROOK_PAWN_VS_KING", $s : side )
+    DerivedFact( type == "ROOK_PAWN_EDGE", side == $s )
+    $p : Piece( type == Piece.Type.PAWN, color == $s, $pSq : square )
+    $defColor : String() from ( Piece.Color.WHITE.equals($s) ? Piece.Color.BLACK : Piece.Color.WHITE )
+    Piece( type == Piece.Type.KING, color == $defColor, $dkSq : square,
+           Math.max( Math.abs($dkSq.charAt(0) - ($pSq.charAt(0) == 'a' ? 'a' : 'h')),
+                     Math.abs($dkSq.charAt(1) - ( Piece.Color.WHITE.equals($s) ? '8' : '1' )) ) > 3 )
+    not DerivedFact( type == "WINNING_POSITION", side == $s )
+    not DerivedFact( type == "THEORETICAL_DRAW" )
+then
+    insert( new DerivedFact(
+        "WINNING_POSITION", $s,
+        "Rook + edge pawn vs. lone king — defending king is too far from the corner to draw.",
+        2, "de la Villa, Ending 4, p.37"
+    ));
+end
+
+// Rule 29c - Rook+Pawn vs Lone King: Draw (edge pawn, defending king near corner)
+rule "Rook-Pawn vs King Draw - Edge Pawn, King Near Corner"
+when
+    DerivedFact( type == "ROOK_PAWN_VS_KING", $s : side )
+    DerivedFact( type == "ROOK_PAWN_EDGE", side == $s )
+    $p : Piece( type == Piece.Type.PAWN, color == $s, $pSq : square )
+    $defColor : String() from ( Piece.Color.WHITE.equals($s) ? Piece.Color.BLACK : Piece.Color.WHITE )
+    Piece( type == Piece.Type.KING, color == $defColor, $dkSq : square,
+           Math.max( Math.abs($dkSq.charAt(0) - ($pSq.charAt(0) == 'a' ? 'a' : 'h')),
+                     Math.abs($dkSq.charAt(1) - ( Piece.Color.WHITE.equals($s) ? '8' : '1' )) ) <= 3 )
+    not DerivedFact( type == "THEORETICAL_DRAW" )
+then
+    insert( new DerivedFact(
+        "THEORETICAL_DRAW", null,
+        "Rook pawn — defending king reaches the promotion corner, stalemate draws. (de la Villa, Ending 4, p.37)",
+        2, "de la Villa, Ending 4, p.37; Silman, Part Two (Class E), p.45"
+    ));
+end
+
+// Rule 30 - Complex Rook Endgame
+rule "Complex Rook Endgame"
+when
+    DerivedFact( type == "ROOK_PAWN_VS_ROOK" )
+    not DerivedFact( type == "LUCENA_WIN" )
+    not DerivedFact( type == "PHILIDOR_DRAW" )
+    not DerivedFact( type == "COMPLEX_ROOK_ENDGAME" )
+then
+    insert( new DerivedFact(
+        "COMPLEX_ROOK_ENDGAME", null,
+        "Position is a complex rook endgame — no standard archetype detected. Rook activity, pawn advancement, and king shelter are the key factors.",
+        2, "de la Villa, Chapter 10 general"
+    ));
+end
+
+// Rule 31 - Pure Rook Endgame: Likely Draw
+// Neither rook holds a dominant 7th-rank position.
+rule "Pure Rook Endgame Likely Draw"
+when
+    DerivedFact( type == "PURE_ROOK_ENDGAME" )
+    accumulate(
+        Piece( type == Piece.Type.ROOK, square matches ".[7]" );
+        $w7 : count(1);
+        $w7 == 0
+    )
+    accumulate(
+        Piece( type == Piece.Type.ROOK, square matches ".[2]" );
+        $b7 : count(1);
+        $b7 == 0
+    )
+    not DerivedFact( type == "LIKELY_DRAW" )
+then
+    insert( new DerivedFact(
+        "LIKELY_DRAW", null,
+        "Pure rook endgame with no 7th-rank rook activity — fortress techniques and perpetual check are standard drawing resources.",
+        2, "de la Villa, Chapter 10 general"
+    ));
+end
+
+// Rule 32a - Rook vs Bishop: Likely Draw (defending king not in wrong corner)
+rule "Rook vs Bishop Likely Draw"
+when
+    DerivedFact( type == "ROOK_VS_BISHOP" )
+    $b : Piece( type == Piece.Type.BISHOP, $bSq : square )
+    $defKingColor : String() from ( $b.getColor() )
+    Piece( type == Piece.Type.KING, color == $defKingColor, $dkSq : square )
+    not DerivedFact( type == "LIKELY_DRAW" )
+    not DerivedFact( type == "WINNING_POSITION" )
+then
+    int bParity = ($b.getSquare().charAt(0) - 'a' + $b.getSquare().charAt(1) - '1') % 2;
+    int dkParity = ($dkSq.charAt(0) - 'a' + $dkSq.charAt(1) - '1') % 2;
+    boolean inCorner = ($dkSq.equals("a1") || $dkSq.equals("a8") || $dkSq.equals("h1") || $dkSq.equals("h8"));
+    if ( !inCorner || bParity == dkParity ) {
+        insert( new DerivedFact(
+            "LIKELY_DRAW", null,
+            "King + Rook vs. King + Bishop is a theoretical draw with correct defence — bishop maintains its diagonal and king avoids the wrong corner. (de la Villa, Endings 6-7, p.39-40)",
+            2, "de la Villa, Endings 6-7, p.39-40"
+        ));
+    }
+end
+
+// Rule 32b - Rook vs Bishop: Winning (defending king in wrong corner)
+rule "Rook vs Bishop Winning - Wrong Corner"
+when
+    DerivedFact( type == "ROOK_VS_BISHOP" )
+    $b : Piece( type == Piece.Type.BISHOP, $bSq : square )
+    $defKingColor : String() from ( $b.getColor() )
+    $atkKingColor : String() from ( Piece.Color.WHITE.equals($defKingColor) ? Piece.Color.BLACK : Piece.Color.WHITE )
+    Piece( type == Piece.Type.KING, color == $defKingColor, $dkSq : square,
+           $dkSq.equals("a1") || $dkSq.equals("a8") || $dkSq.equals("h1") || $dkSq.equals("h8") )
+    Piece( type == Piece.Type.KING, color == $atkKingColor, $akSq : square,
+           Math.max( Math.abs($akSq.charAt(0) - $dkSq.charAt(0)),
+                     Math.abs($akSq.charAt(1) - $dkSq.charAt(1)) ) <= 3 )
+    not DerivedFact( type == "WINNING_POSITION" )
+then
+    int bParity  = ($b.getSquare().charAt(0) - 'a' + $b.getSquare().charAt(1) - '1') % 2;
+    int dkParity = ($dkSq.charAt(0) - 'a' + $dkSq.charAt(1) - '1') % 2;
+    if ( bParity != dkParity ) {
+        insert( new DerivedFact(
+            "WINNING_POSITION", $atkKingColor,
+            "Defending king is in the 'wrong corner' — a corner the bishop cannot control. The rook side can force checkmate. (de la Villa, Ending 6, p.39)",
+            2, "de la Villa, Ending 6, p.39"
+        ));
+    }
+end
+
+// Rule 33a - Rook vs Knight: Winning (knight on edge)
+rule "Rook vs Knight Winning - Knight on Edge"
+when
+    DerivedFact( type == "ROOK_VS_KNIGHT", $knEdge : type )
+    DerivedFact( type == "KNIGHT_ON_EDGE", $knColor : side )
+    $atkColor : String() from ( Piece.Color.WHITE.equals($knColor) ? Piece.Color.BLACK : Piece.Color.WHITE )
+    not DerivedFact( type == "WINNING_POSITION" )
+then
+    insert( new DerivedFact(
+        "WINNING_POSITION", $atkColor,
+        "Knight is on the edge or corner — it can be cut off, trapped, and captured. The rook side wins with correct technique. (de la Villa, Endings 8-9, p.41-42)",
+        2, "de la Villa, Endings 8-9, p.41-42"
+    ));
+end
+
+// Rule 33b - Rook vs Knight: Likely Draw (knight centralised)
+rule "Rook vs Knight Likely Draw"
+when
+    DerivedFact( type == "ROOK_VS_KNIGHT" )
+    not DerivedFact( type == "KNIGHT_ON_EDGE" )
+    not DerivedFact( type == "LIKELY_DRAW" )
+then
+    insert( new DerivedFact(
+        "LIKELY_DRAW", null,
+        "Knight is centralised — K+R vs. K+N is a theoretical draw when the knight is safely away from the edge. (de la Villa, Ending 8, p.41)",
+        2, "de la Villa, Ending 8, p.41"
+    ));
+end
+
+// Rule 34a - Queen vs Advanced Pawn: Draw (rook pawn, or bishop pawn with king blocking)
+rule "Queen vs Advanced Pawn Draw - Rook Pawn"
+when
+    DerivedFact( type == "QUEEN_VS_ADVANCED_PAWN" )
+    exists Piece( type == Piece.Type.PAWN, square matches "[ah][1-8]" )
+    not DerivedFact( type == "THEORETICAL_DRAW" )
+then
+    insert( new DerivedFact(
+        "THEORETICAL_DRAW", null,
+        "Queen cannot force a win against a rook's pawn — the defending side has a stalemate defence. (de la Villa, Ending 17, p.60; Silman, Part Four (Class C))",
+        2, "de la Villa, Ending 17, p.60; Silman, Part Four (Class C)"
+    ));
+end
+
+rule "Queen vs Advanced Pawn Draw - Bishop Pawn, King Blocking"
+when
+    DerivedFact( type == "QUEEN_VS_ADVANCED_PAWN", $qs : side )
+    $defColor : String() from ( Piece.Color.WHITE.equals($qs) ? Piece.Color.BLACK : Piece.Color.WHITE )
+    $p : Piece( type == Piece.Type.PAWN, color == $defColor, $pSq : square,
+                ( square.charAt(0) == 'c' || square.charAt(0) == 'f' ) )
+    Piece( type == Piece.Type.KING, color == $defColor, $dkSq : square,
+           $dkSq.charAt(0) == $pSq.charAt(0),
+           ( Piece.Color.WHITE.equals($qs) ? $dkSq.charAt(1) < $pSq.charAt(1) : $dkSq.charAt(1) > $pSq.charAt(1) ) )
+    not DerivedFact( type == "THEORETICAL_DRAW" )
+then
+    insert( new DerivedFact(
+        "THEORETICAL_DRAW", null,
+        "Queen cannot force a win against a bishop's pawn with the defending king blocking — stalemate tricks apply. (de la Villa, Ending 18, p.62; Silman, Part Four (Class C))",
+        2, "de la Villa, Ending 18, p.62; Silman, Part Four (Class C)"
+    ));
+end
+
+// Rule 34b - Queen vs Advanced Pawn: Winning (central or knight pawn)
+rule "Queen vs Advanced Pawn Win"
+when
+    DerivedFact( type == "QUEEN_VS_ADVANCED_PAWN", $qs : side )
+    $defColor : String() from ( Piece.Color.WHITE.equals($qs) ? Piece.Color.BLACK : Piece.Color.WHITE )
+    exists Piece( type == Piece.Type.PAWN, color == $defColor,
+                  square matches "[bdeg][1-8]" )
+    not DerivedFact( type == "WINNING_POSITION", side == $qs )
+then
+    insert( new DerivedFact(
+        "WINNING_POSITION", $qs,
+        "Queen wins against a 7th-rank knight's or central pawn — no stalemate resource available with correct queen technique. (de la Villa, Ending 16, p.59)",
+        2, "de la Villa, Ending 16, p.59"
+    ));
+end

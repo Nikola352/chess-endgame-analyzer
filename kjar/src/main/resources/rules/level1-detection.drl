@@ -1,0 +1,381 @@
+package rules;
+
+import com.github.nikola352.chess_endgame_analyzer.model.models.Piece;
+import com.github.nikola352.chess_endgame_analyzer.model.models.Position;
+
+// Rule 12 - Direct Opposition
+// Kings face each other with exactly one square between them on the same file or rank.
+// The side NOT to move holds the opposition.
+rule "Direct Opposition"
+when
+    $pos : Position( $stm : sideToMove )
+    DerivedFact( type == "KING_PAWN_ENDGAME" )
+    Piece( type == Piece.Type.KING, color == Piece.Color.WHITE, $wk : square )
+    Piece( type == Piece.Type.KING, color == Piece.Color.BLACK, $bk : square,
+           ( $bk.charAt(0) == $wk.charAt(0) && Math.abs($bk.charAt(1) - $wk.charAt(1)) == 2 )
+        || ( $bk.charAt(1) == $wk.charAt(1) && Math.abs($bk.charAt(0) - $wk.charAt(0)) == 2 ) )
+    not DerivedFact( type == "DIRECT_OPPOSITION" )
+then
+    String holder = Piece.Color.WHITE.equals($stm) ? Piece.Color.BLACK : Piece.Color.WHITE;
+    insert( new DerivedFact(
+        "DIRECT_OPPOSITION", holder,
+        "Kings are in direct opposition. The side to move (" + $stm + ") must step aside, conceding ground.",
+        1, "de la Villa, Ending 2, p.29; Silman, Part Two (Class E), p.42"
+    ));
+end
+
+// Rule 13 - Distant Opposition
+// Both kings on the same file or rank separated by 3 or 5 squares (diff of 4 or 6).
+rule "Distant Opposition"
+when
+    DerivedFact( type == "KING_PAWN_ENDGAME" )
+    Piece( type == Piece.Type.KING, color == Piece.Color.WHITE, $wk : square )
+    Piece( type == Piece.Type.KING, color == Piece.Color.BLACK, $bk : square,
+           ( $bk.charAt(0) == $wk.charAt(0) && ( Math.abs($bk.charAt(1) - $wk.charAt(1)) == 4 || Math.abs($bk.charAt(1) - $wk.charAt(1)) == 6 ) )
+        || ( $bk.charAt(1) == $wk.charAt(1) && ( Math.abs($bk.charAt(0) - $wk.charAt(0)) == 4 || Math.abs($bk.charAt(0) - $wk.charAt(0)) == 6 ) ) )
+    not DerivedFact( type == "DISTANT_OPPOSITION" )
+then
+    insert( new DerivedFact(
+        "DISTANT_OPPOSITION", null,
+        "Kings are in distant opposition — the side not to move holds it and can potentially convert to direct opposition.",
+        1, "de la Villa, Ending 3, p.35; Silman, Part Two (Class E), p.44"
+    ));
+end
+
+// Rule 14 - Rule of the Square: White pawn promotes freely
+// Defending king is outside the promotion square when it is white's turn to move.
+rule "Rule of Square - White pawn, white to move"
+when
+    DerivedFact( type == "KING_PAWN_ENDGAME" )
+    Position( sideToMove == Piece.Color.WHITE )
+    $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.WHITE, $ps : square )
+    Piece( type == Piece.Type.KING, color == Piece.Color.BLACK, $bk : square,
+           Math.max( Math.abs($bk.charAt(0) - ($ps.charAt(0) - 'a' + 'a')), Math.abs($bk.charAt(1) - '8') )
+               > ('8' - $ps.charAt(1)) )
+    not DerivedFact( type == "PAWN_PROMOTES_FREELY", side == Piece.Color.WHITE )
+then
+    insert( new DerivedFact(
+        "PAWN_PROMOTES_FREELY", Piece.Color.WHITE,
+        "Defending king is outside the pawn's promotion square — the pawn will promote without being caught. (de la Villa, Ending 1, p.27)",
+        1, "de la Villa, Ending 1, p.27; Silman, Part Four (Class C), p.106"
+    ));
+end
+
+// Rule 14b - Rule of the Square: White pawn promotes freely (black to move)
+// When black moves first, the effective square shrinks by one rank.
+rule "Rule of Square - White pawn, black to move"
+when
+    DerivedFact( type == "KING_PAWN_ENDGAME" )
+    Position( sideToMove == Piece.Color.BLACK )
+    $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.WHITE, $ps : square )
+    Piece( type == Piece.Type.KING, color == Piece.Color.BLACK, $bk : square,
+           Math.max( Math.abs($bk.charAt(0) - $ps.charAt(0)), Math.abs($bk.charAt(1) - '8') )
+               > ('8' - $ps.charAt(1) - 1) )
+    not DerivedFact( type == "PAWN_PROMOTES_FREELY", side == Piece.Color.WHITE )
+then
+    insert( new DerivedFact(
+        "PAWN_PROMOTES_FREELY", Piece.Color.WHITE,
+        "Defending king is outside the pawn's promotion square (pawn moves first) — the pawn will promote without being caught. (de la Villa, Ending 1, p.27)",
+        1, "de la Villa, Ending 1, p.27; Silman, Part Four (Class C), p.106"
+    ));
+end
+
+// Rule 14c - Rule of the Square: Black pawn promotes freely (black to move)
+rule "Rule of Square - Black pawn, black to move"
+when
+    DerivedFact( type == "KING_PAWN_ENDGAME" )
+    Position( sideToMove == Piece.Color.BLACK )
+    $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.BLACK, $ps : square )
+    Piece( type == Piece.Type.KING, color == Piece.Color.WHITE, $wk : square,
+           Math.max( Math.abs($wk.charAt(0) - $ps.charAt(0)), Math.abs($wk.charAt(1) - '1') )
+               > ($ps.charAt(1) - '1') )
+    not DerivedFact( type == "PAWN_PROMOTES_FREELY", side == Piece.Color.BLACK )
+then
+    insert( new DerivedFact(
+        "PAWN_PROMOTES_FREELY", Piece.Color.BLACK,
+        "Defending king is outside the pawn's promotion square — the pawn will promote without being caught. (de la Villa, Ending 1, p.27)",
+        1, "de la Villa, Ending 1, p.27; Silman, Part Four (Class C), p.106"
+    ));
+end
+
+// Rule 14d - Rule of the Square: Black pawn promotes freely (white to move)
+rule "Rule of Square - Black pawn, white to move"
+when
+    DerivedFact( type == "KING_PAWN_ENDGAME" )
+    Position( sideToMove == Piece.Color.WHITE )
+    $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.BLACK, $ps : square )
+    Piece( type == Piece.Type.KING, color == Piece.Color.WHITE, $wk : square,
+           Math.max( Math.abs($wk.charAt(0) - $ps.charAt(0)), Math.abs($wk.charAt(1) - '1') )
+               > ($ps.charAt(1) - '1' - 1) )
+    not DerivedFact( type == "PAWN_PROMOTES_FREELY", side == Piece.Color.BLACK )
+then
+    insert( new DerivedFact(
+        "PAWN_PROMOTES_FREELY", Piece.Color.BLACK,
+        "Defending king is outside the pawn's promotion square (pawn moves first) — the pawn will promote without being caught. (de la Villa, Ending 1, p.27)",
+        1, "de la Villa, Ending 1, p.27; Silman, Part Four (Class C), p.106"
+    ));
+end
+
+// Rule 15 - Key Square Occupied: fires when the attacking king stands on a dynamically
+// derived key square (KeySquare facts inserted by the key-file-rules template at runtime).
+rule "Key Square Occupied"
+when
+    DerivedFact( type == "KING_PAWN_ENDGAME" )
+    KeySquare( $color : pawnColor, $pf : pawnFile, $sq : square )
+    Piece( type == Piece.Type.KING, color == $color, square == $sq )
+    not DerivedFact( type == "KEY_SQUARE_OCCUPIED", side == $color )
+then
+    insert( new DerivedFact(
+        "KEY_SQUARE_OCCUPIED",
+        $color,
+        "Attacking king occupies key square " + $sq + " for the " + $pf + "-pawn — promotion guaranteed regardless of defender. (de la Villa, Ending 3, p.33)",
+        1,
+        "de la Villa, Ending 3, p.33"
+    ));
+end
+
+// Rule 16 - Wrong Color Bishop (White attacker)
+// Bishop does not control the promotion square of the rook pawn.
+rule "Wrong Color Bishop - White attacker"
+when
+    DerivedFact( type == "BISHOP_PAWN_VS_KING", side == Piece.Color.WHITE )
+    $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.WHITE,
+                square matches "[ah][1-8]",
+                $pFile : square.substring(0,1) )
+    $b : Piece( type == Piece.Type.BISHOP, color == Piece.Color.WHITE, $bSq : square )
+    not DerivedFact( type == "WRONG_COLOR_BISHOP" )
+then
+    String promSq = $pFile + "8";
+    int bColor  = ($b.getSquare().charAt(0) - 'a' + $b.getSquare().charAt(1) - '1') % 2;
+    int psColor = (promSq.charAt(0) - 'a' + promSq.charAt(1) - '1') % 2;
+    if ( bColor != psColor ) {
+        insert( new DerivedFact(
+            "WRONG_COLOR_BISHOP", Piece.Color.WHITE,
+            "The bishop does not control the promotion square " + promSq + " — the defending king draws by reaching the promotion corner. (Silman, Part Four (Class C), p.112; de la Villa, Ending 4, p.37)",
+            1, "Silman, Part Four (Class C), p.112; de la Villa, Ending 4, p.37"
+        ));
+    }
+end
+
+// Rule 16b - Wrong Color Bishop (Black attacker)
+rule "Wrong Color Bishop - Black attacker"
+when
+    DerivedFact( type == "BISHOP_PAWN_VS_KING", side == Piece.Color.BLACK )
+    $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.BLACK,
+                square matches "[ah][1-8]",
+                $pFile : square.substring(0,1) )
+    $b : Piece( type == Piece.Type.BISHOP, color == Piece.Color.BLACK, $bSq : square )
+    not DerivedFact( type == "WRONG_COLOR_BISHOP" )
+then
+    String promSq = $pFile + "1";
+    int bColor  = ($b.getSquare().charAt(0) - 'a' + $b.getSquare().charAt(1) - '1') % 2;
+    int psColor = (promSq.charAt(0) - 'a' + promSq.charAt(1) - '1') % 2;
+    if ( bColor != psColor ) {
+        insert( new DerivedFact(
+            "WRONG_COLOR_BISHOP", Piece.Color.BLACK,
+            "The bishop does not control the promotion square " + promSq + " — the defending king draws by reaching the promotion corner. (Silman, Part Four (Class C), p.112; de la Villa, Ending 4, p.37)",
+            1, "Silman, Part Four (Class C), p.112; de la Villa, Ending 4, p.37"
+        ));
+    }
+end
+
+// Rule 17 - Lucena Position Candidate (White attacker)
+// Attacking king on 8th rank, pawn on 7th rank, not a rook pawn.
+rule "Lucena Candidate - White attacker"
+when
+    DerivedFact( type == "ROOK_PAWN_VS_ROOK", side == Piece.Color.WHITE )
+    Piece( type == Piece.Type.PAWN,  color == Piece.Color.WHITE, square matches "[b-g]7" )
+    Piece( type == Piece.Type.KING,  color == Piece.Color.WHITE, square matches ".[8]" )
+    not DerivedFact( type == "LUCENA_CANDIDATE" )
+then
+    insert( new DerivedFact(
+        "LUCENA_CANDIDATE", Piece.Color.WHITE,
+        "Position matches Lucena setup: attacking king on 8th rank sheltered ahead of pawn on 7th rank. Bridge-building technique wins. (de la Villa, Ending 53, p.125)",
+        1, "de la Villa, Ending 53, p.125"
+    ));
+end
+
+// Rule 17b - Lucena Position Candidate (Black attacker)
+rule "Lucena Candidate - Black attacker"
+when
+    DerivedFact( type == "ROOK_PAWN_VS_ROOK", side == Piece.Color.BLACK )
+    Piece( type == Piece.Type.PAWN,  color == Piece.Color.BLACK, square matches "[b-g]2" )
+    Piece( type == Piece.Type.KING,  color == Piece.Color.BLACK, square matches ".[1]" )
+    not DerivedFact( type == "LUCENA_CANDIDATE" )
+then
+    insert( new DerivedFact(
+        "LUCENA_CANDIDATE", Piece.Color.BLACK,
+        "Position matches Lucena setup: attacking king on 1st rank sheltered ahead of pawn on 2nd rank. Bridge-building technique wins. (de la Villa, Ending 53, p.125)",
+        1, "de la Villa, Ending 53, p.125"
+    ));
+end
+
+// Rule 18 - Philidor Defense Candidate (White attacker)
+// Defending king on 8th rank (in front of pawn), defending rook on rank 6, pawn not yet on 6th rank.
+rule "Philidor Candidate - White attacker"
+when
+    DerivedFact( type == "ROOK_PAWN_VS_ROOK", side == Piece.Color.WHITE )
+    Piece( type == Piece.Type.PAWN,  color == Piece.Color.WHITE, $ps : square, square matches ".[1-5]" )
+    Piece( type == Piece.Type.KING,  color == Piece.Color.BLACK, square matches ".[8]" )
+    Piece( type == Piece.Type.ROOK,  color == Piece.Color.BLACK, square matches ".[6]" )
+    not DerivedFact( type == "PHILIDOR_CANDIDATE" )
+then
+    insert( new DerivedFact(
+        "PHILIDOR_CANDIDATE", Piece.Color.WHITE,
+        "Philidor defense is set up: defending king in front of pawn on 8th rank, defending rook on 3rd rank (6th absolute). (de la Villa, Ending 52, p.124)",
+        1, "de la Villa, Ending 52, p.124"
+    ));
+end
+
+// Rule 18b - Philidor Defense Candidate (Black attacker)
+rule "Philidor Candidate - Black attacker"
+when
+    DerivedFact( type == "ROOK_PAWN_VS_ROOK", side == Piece.Color.BLACK )
+    Piece( type == Piece.Type.PAWN,  color == Piece.Color.BLACK, $ps : square, square matches ".[4-8]" )
+    Piece( type == Piece.Type.KING,  color == Piece.Color.WHITE, square matches ".[1]" )
+    Piece( type == Piece.Type.ROOK,  color == Piece.Color.WHITE, square matches ".[3]" )
+    not DerivedFact( type == "PHILIDOR_CANDIDATE" )
+then
+    insert( new DerivedFact(
+        "PHILIDOR_CANDIDATE", Piece.Color.BLACK,
+        "Philidor defense is set up: defending king in front of pawn on 1st rank, defending rook on 6th rank (3rd absolute). (de la Villa, Ending 52, p.124)",
+        1, "de la Villa, Ending 52, p.124"
+    ));
+end
+
+// Rule 19 - Knight on the Edge
+rule "Knight on the Edge"
+when
+    DerivedFact( type == "ROOK_VS_KNIGHT" )
+    $kn : Piece( type == Piece.Type.KNIGHT, $knColor : color, $knSq : square,
+                 square.charAt(0) == 'a' || square.charAt(0) == 'h'
+              || square.charAt(1) == '1' || square.charAt(1) == '8' )
+    not DerivedFact( type == "KNIGHT_ON_EDGE" )
+then
+    insert( new DerivedFact(
+        "KNIGHT_ON_EDGE", $knColor,
+        "The defending knight is on the edge/corner (" + $knSq + ") — it controls fewer squares and can be cut off and trapped. (de la Villa, Ending 8, p.41; Ending 9, p.42)",
+        1, "de la Villa, Ending 8, p.41; Ending 9, p.42"
+    ));
+end
+
+// Rule 20 - Pawn on 6th Rank (White pawn on rank 6, or Black pawn on rank 3)
+rule "Pawn on 6th Rank - White"
+when
+    DerivedFact( type == "KING_PAWN_ENDGAME" )
+    exists Piece( type == Piece.Type.PAWN, color == Piece.Color.WHITE, square matches ".[6]" )
+    not DerivedFact( type == "PAWN_ON_SIXTH_RANK", side == Piece.Color.WHITE )
+then
+    insert( new DerivedFact(
+        "PAWN_ON_SIXTH_RANK", Piece.Color.WHITE,
+        "Attacking pawn has reached the 6th rank — the critical threshold where opposition and key squares become immediately decisive. (de la Villa, Ending 2, p.29)",
+        1, "de la Villa, Ending 2, p.29"
+    ));
+end
+
+rule "Pawn on 6th Rank - Black"
+when
+    DerivedFact( type == "KING_PAWN_ENDGAME" )
+    exists Piece( type == Piece.Type.PAWN, color == Piece.Color.BLACK, square matches ".[3]" )
+    not DerivedFact( type == "PAWN_ON_SIXTH_RANK", side == Piece.Color.BLACK )
+then
+    insert( new DerivedFact(
+        "PAWN_ON_SIXTH_RANK", Piece.Color.BLACK,
+        "Attacking pawn has reached the 6th rank — the critical threshold where opposition and key squares become immediately decisive. (de la Villa, Ending 2, p.29)",
+        1, "de la Villa, Ending 2, p.29"
+    ));
+end
+
+// Rule 21 - Attacking King Leads the Pawn (one rank ahead, same file)
+rule "King Leads Pawn - White"
+when
+    DerivedFact( type == "KING_PAWN_ENDGAME" )
+    $pawn : Piece( type == Piece.Type.PAWN,  color == Piece.Color.WHITE, $ps : square )
+    Piece( type == Piece.Type.KING, color == Piece.Color.WHITE, $ks : square,
+           $ks.charAt(0) == $ps.charAt(0),
+           $ks.charAt(1) - $ps.charAt(1) == 1 )
+    not DerivedFact( type == "KING_LEADS_PAWN", side == Piece.Color.WHITE )
+then
+    insert( new DerivedFact(
+        "KING_LEADS_PAWN", Piece.Color.WHITE,
+        "Attacking king is directly in front of its pawn — the canonical winning configuration. (Silman, Part Three (Class D), p.61)",
+        1, "Silman, Part Three (Class D), p.61"
+    ));
+end
+
+rule "King Leads Pawn - Black"
+when
+    DerivedFact( type == "KING_PAWN_ENDGAME" )
+    $pawn : Piece( type == Piece.Type.PAWN,  color == Piece.Color.BLACK, $ps : square )
+    Piece( type == Piece.Type.KING, color == Piece.Color.BLACK, $ks : square,
+           $ks.charAt(0) == $ps.charAt(0),
+           $ps.charAt(1) - $ks.charAt(1) == 1 )
+    not DerivedFact( type == "KING_LEADS_PAWN", side == Piece.Color.BLACK )
+then
+    insert( new DerivedFact(
+        "KING_LEADS_PAWN", Piece.Color.BLACK,
+        "Attacking king is directly in front of its pawn — the canonical winning configuration. (Silman, Part Three (Class D), p.61)",
+        1, "Silman, Part Three (Class D), p.61"
+    ));
+end
+
+// Rule 22 - Zugzwang Defender (Trebuchet)
+// Defender is to move, holds direct opposition, pawn is advanced, no key square occupied yet.
+rule "Zugzwang Defender - White attacker"
+when
+    DerivedFact( type == "KING_PAWN_ENDGAME" )
+    DerivedFact( type == "DIRECT_OPPOSITION" )
+    Position( sideToMove == Piece.Color.BLACK )
+    Piece( type == Piece.Type.PAWN, color == Piece.Color.WHITE, square matches ".[5-7]" )
+    not DerivedFact( type == "KEY_SQUARE_OCCUPIED" )
+    not DerivedFact( type == "ZUGZWANG_DEFENDER" )
+then
+    insert( new DerivedFact(
+        "ZUGZWANG_DEFENDER", Piece.Color.WHITE,
+        "The defending side is in zugzwang (Trebuchet): any king move must concede the direct opposition. (Silman, Part Four (Class C), p.97: 'Trebuchet: whoever moves, loses')",
+        1, "Silman, Part Four (Class C), p.97-100"
+    ));
+end
+
+rule "Zugzwang Defender - Black attacker"
+when
+    DerivedFact( type == "KING_PAWN_ENDGAME" )
+    DerivedFact( type == "DIRECT_OPPOSITION" )
+    Position( sideToMove == Piece.Color.WHITE )
+    Piece( type == Piece.Type.PAWN, color == Piece.Color.BLACK, square matches ".[2-4]" )
+    not DerivedFact( type == "KEY_SQUARE_OCCUPIED" )
+    not DerivedFact( type == "ZUGZWANG_DEFENDER" )
+then
+    insert( new DerivedFact(
+        "ZUGZWANG_DEFENDER", Piece.Color.BLACK,
+        "The defending side is in zugzwang (Trebuchet): any king move must concede the direct opposition. (Silman, Part Four (Class C), p.97: 'Trebuchet: whoever moves, loses')",
+        1, "Silman, Part Four (Class C), p.97-100"
+    ));
+end
+
+// Rule 23 - Rook Pawn Edge Detection
+rule "Rook Pawn Edge - White"
+when
+    DerivedFact( type == "ENDGAME_DETECTED" )
+    exists Piece( type == Piece.Type.PAWN, color == Piece.Color.WHITE, square matches "[ah][1-8]" )
+    not DerivedFact( type == "ROOK_PAWN_EDGE", side == Piece.Color.WHITE )
+then
+    insert( new DerivedFact(
+        "ROOK_PAWN_EDGE", Piece.Color.WHITE,
+        "A rook pawn (edge pawn) is on the board — corner drawing resources and wrong-color bishop draws are possible.",
+        1, "de la Villa, Ending 4, p.37; Silman, Part Two (Class E), p.45"
+    ));
+end
+
+rule "Rook Pawn Edge - Black"
+when
+    DerivedFact( type == "ENDGAME_DETECTED" )
+    exists Piece( type == Piece.Type.PAWN, color == Piece.Color.BLACK, square matches "[ah][1-8]" )
+    not DerivedFact( type == "ROOK_PAWN_EDGE", side == Piece.Color.BLACK )
+then
+    insert( new DerivedFact(
+        "ROOK_PAWN_EDGE", Piece.Color.BLACK,
+        "A rook pawn (edge pawn) is on the board — corner drawing resources and wrong-color bishop draws are possible.",
+        1, "de la Villa, Ending 4, p.37; Silman, Part Two (Class E), p.45"
+    ));
+end

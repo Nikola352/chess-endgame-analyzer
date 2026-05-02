@@ -1,0 +1,379 @@
+package rules;
+
+import com.github.nikola352.chess_endgame_analyzer.model.models.Piece;
+import com.github.nikola352.chess_endgame_analyzer.model.models.Position;
+
+// Rule 1 - Endgame Detection
+rule "Endgame Detection"
+when
+    $pos : Position()
+    not DerivedFact( type == "ENDGAME_DETECTED" )
+    accumulate(
+        Piece( type != Piece.Type.KING );
+        $c : count(1);
+        $c <= 6
+    )
+then
+    insert( new DerivedFact(
+        "ENDGAME_DETECTED", null,
+        "Position has " + $c + " non-king piece(s) — endgame analysis rules apply.",
+        1, "General knowledge"
+    ));
+end
+
+// Rule 2 - King-Pawn Endgame Classification
+rule "King-Pawn Endgame Classification"
+when
+    $pos : Position()
+    DerivedFact( type == "ENDGAME_DETECTED" )
+    accumulate(
+        Piece( type != Piece.Type.KING, type != Piece.Type.PAWN );
+        $np : count(1);
+        $np == 0
+    )
+    exists Piece( type == Piece.Type.PAWN )
+    not DerivedFact( type == "KING_PAWN_ENDGAME" )
+then
+    modify( $pos ) { setEndgameType( "KING_PAWN_ENDGAME" ) }
+    insert( new DerivedFact(
+        "KING_PAWN_ENDGAME", null,
+        "Position contains only kings and pawns — king-pawn endgame theory applies.",
+        1, "de la Villa, Chapter 1, p.27"
+    ));
+end
+
+// Rule 3 - Rook+Pawn vs Rook Classification
+rule "Rook-Pawn vs Rook Classification"
+when
+    $pos : Position()
+    DerivedFact( type == "ENDGAME_DETECTED" )
+    not DerivedFact( type == "KING_PAWN_ENDGAME" )
+    accumulate(
+        Piece( type == Piece.Type.PAWN );
+        $pawns : count(1);
+        $pawns == 1
+    )
+    exists Piece( type == Piece.Type.ROOK, color == Piece.Color.WHITE )
+    exists Piece( type == Piece.Type.ROOK, color == Piece.Color.BLACK )
+    accumulate(
+        Piece( type != Piece.Type.KING, type != Piece.Type.ROOK, type != Piece.Type.PAWN );
+        $other : count(1);
+        $other == 0
+    )
+    $pawn : Piece( type == Piece.Type.PAWN, $pawnColor : color )
+    not DerivedFact( type == "ROOK_PAWN_VS_ROOK" )
+then
+    modify( $pos ) { setEndgameType( "ROOK_PAWN_VS_ROOK" ) }
+    insert( new DerivedFact(
+        "ROOK_PAWN_VS_ROOK", $pawnColor,
+        "Rook + pawn vs. rook — Lucena and Philidor theory applies. (de la Villa, Endings 52-53, p.124-125)",
+        1, "de la Villa, Endings 52-53, p.124-125"
+    ));
+end
+
+// Rule 4 - Pure Rook Endgame Classification
+rule "Pure Rook Endgame Classification"
+when
+    $pos : Position()
+    DerivedFact( type == "ENDGAME_DETECTED" )
+    not DerivedFact( type == "KING_PAWN_ENDGAME" )
+    exists Piece( type == Piece.Type.ROOK, color == Piece.Color.WHITE )
+    exists Piece( type == Piece.Type.ROOK, color == Piece.Color.BLACK )
+    not exists Piece( type == Piece.Type.PAWN )
+    accumulate(
+        Piece( type != Piece.Type.KING, type != Piece.Type.ROOK );
+        $other : count(1);
+        $other == 0
+    )
+    not DerivedFact( type == "PURE_ROOK_ENDGAME" )
+then
+    modify( $pos ) { setEndgameType( "PURE_ROOK_ENDGAME" ) }
+    insert( new DerivedFact(
+        "PURE_ROOK_ENDGAME", null,
+        "Only kings and rooks remain — fortress and activity principles apply.",
+        1, "de la Villa, Chapter 10 general"
+    ));
+end
+
+// Rule 5 - Bishop+Pawn vs Lone King (White attacker)
+rule "Bishop-Pawn vs Lone King Classification - White attacker"
+salience 1
+when
+    $pos : Position()
+    DerivedFact( type == "ENDGAME_DETECTED" )
+    not DerivedFact( type == "KING_PAWN_ENDGAME" )
+    exists Piece( type == Piece.Type.BISHOP, color == Piece.Color.WHITE )
+    exists Piece( type == Piece.Type.PAWN,   color == Piece.Color.WHITE )
+    not exists Piece( type != Piece.Type.KING, color == Piece.Color.BLACK )
+    accumulate(
+        Piece( type != Piece.Type.KING, type != Piece.Type.BISHOP, type != Piece.Type.PAWN, color == Piece.Color.WHITE );
+        $other : count(1);
+        $other == 0
+    )
+    not DerivedFact( type == "BISHOP_PAWN_VS_KING" )
+then
+    modify( $pos ) { setEndgameType( "BISHOP_PAWN_VS_KING" ) }
+    insert( new DerivedFact(
+        "BISHOP_PAWN_VS_KING", Piece.Color.WHITE,
+        "Bishop and pawn(s) vs. lone king — check for wrong-color bishop draw.",
+        1, "Silman, Part Four (Class C), p.112"
+    ));
+end
+
+// Rule 5b - Bishop+Pawn vs Lone King (Black attacker)
+rule "Bishop-Pawn vs Lone King Classification - Black attacker"
+salience 1
+when
+    $pos : Position()
+    DerivedFact( type == "ENDGAME_DETECTED" )
+    not DerivedFact( type == "KING_PAWN_ENDGAME" )
+    exists Piece( type == Piece.Type.BISHOP, color == Piece.Color.BLACK )
+    exists Piece( type == Piece.Type.PAWN,   color == Piece.Color.BLACK )
+    not exists Piece( type != Piece.Type.KING, color == Piece.Color.WHITE )
+    accumulate(
+        Piece( type != Piece.Type.KING, type != Piece.Type.BISHOP, type != Piece.Type.PAWN, color == Piece.Color.BLACK );
+        $other : count(1);
+        $other == 0
+    )
+    not DerivedFact( type == "BISHOP_PAWN_VS_KING" )
+then
+    modify( $pos ) { setEndgameType( "BISHOP_PAWN_VS_KING" ) }
+    insert( new DerivedFact(
+        "BISHOP_PAWN_VS_KING", Piece.Color.BLACK,
+        "Bishop and pawn(s) vs. lone king — check for wrong-color bishop draw.",
+        1, "Silman, Part Four (Class C), p.112"
+    ));
+end
+
+// Rule 6 - Rook+Pawn vs Lone King (White attacker)
+rule "Rook-Pawn vs Lone King Classification - White attacker"
+salience 1
+when
+    $pos : Position()
+    DerivedFact( type == "ENDGAME_DETECTED" )
+    not DerivedFact( type == "KING_PAWN_ENDGAME" )
+    exists Piece( type == Piece.Type.ROOK, color == Piece.Color.WHITE )
+    exists Piece( type == Piece.Type.PAWN, color == Piece.Color.WHITE )
+    not exists Piece( type != Piece.Type.KING, color == Piece.Color.BLACK )
+    accumulate(
+        Piece( type != Piece.Type.KING, color == Piece.Color.WHITE );
+        $wc : count(1);
+        $wc == 2
+    )
+    not DerivedFact( type == "ROOK_PAWN_VS_KING" )
+then
+    modify( $pos ) { setEndgameType( "ROOK_PAWN_VS_KING" ) }
+    insert( new DerivedFact(
+        "ROOK_PAWN_VS_KING", Piece.Color.WHITE,
+        "Rook + pawn vs. lone king — winning unless corner defense draws.",
+        1, "de la Villa, Chapters 5-10"
+    ));
+end
+
+// Rule 6b - Rook+Pawn vs Lone King (Black attacker)
+rule "Rook-Pawn vs Lone King Classification - Black attacker"
+salience 1
+when
+    $pos : Position()
+    DerivedFact( type == "ENDGAME_DETECTED" )
+    not DerivedFact( type == "KING_PAWN_ENDGAME" )
+    exists Piece( type == Piece.Type.ROOK, color == Piece.Color.BLACK )
+    exists Piece( type == Piece.Type.PAWN, color == Piece.Color.BLACK )
+    not exists Piece( type != Piece.Type.KING, color == Piece.Color.WHITE )
+    accumulate(
+        Piece( type != Piece.Type.KING, color == Piece.Color.BLACK );
+        $bc : count(1);
+        $bc == 2
+    )
+    not DerivedFact( type == "ROOK_PAWN_VS_KING" )
+then
+    modify( $pos ) { setEndgameType( "ROOK_PAWN_VS_KING" ) }
+    insert( new DerivedFact(
+        "ROOK_PAWN_VS_KING", Piece.Color.BLACK,
+        "Rook + pawn vs. lone king — winning unless corner defense draws.",
+        1, "de la Villa, Chapters 5-10"
+    ));
+end
+
+// Rule 7 - Knight+Pawn vs Lone King (White attacker)
+rule "Knight-Pawn vs Lone King Classification - White attacker"
+salience 1
+when
+    $pos : Position()
+    DerivedFact( type == "ENDGAME_DETECTED" )
+    not DerivedFact( type == "KING_PAWN_ENDGAME" )
+    exists Piece( type == Piece.Type.KNIGHT, color == Piece.Color.WHITE )
+    exists Piece( type == Piece.Type.PAWN,   color == Piece.Color.WHITE )
+    not exists Piece( type != Piece.Type.KING, color == Piece.Color.BLACK )
+    accumulate(
+        Piece( type != Piece.Type.KING, color == Piece.Color.WHITE );
+        $wc : count(1);
+        $wc == 2
+    )
+    not DerivedFact( type == "KNIGHT_PAWN_VS_KING" )
+then
+    modify( $pos ) { setEndgameType( "KNIGHT_PAWN_VS_KING" ) }
+    insert( new DerivedFact(
+        "KNIGHT_PAWN_VS_KING", Piece.Color.WHITE,
+        "Knight + pawn vs. lone king — draw if defending king blockades or knight is wrong color.",
+        1, "de la Villa, Chapter 3, p.51"
+    ));
+end
+
+// Rule 7b - Knight+Pawn vs Lone King (Black attacker)
+rule "Knight-Pawn vs Lone King Classification - Black attacker"
+salience 1
+when
+    $pos : Position()
+    DerivedFact( type == "ENDGAME_DETECTED" )
+    not DerivedFact( type == "KING_PAWN_ENDGAME" )
+    exists Piece( type == Piece.Type.KNIGHT, color == Piece.Color.BLACK )
+    exists Piece( type == Piece.Type.PAWN,   color == Piece.Color.BLACK )
+    not exists Piece( type != Piece.Type.KING, color == Piece.Color.WHITE )
+    accumulate(
+        Piece( type != Piece.Type.KING, color == Piece.Color.BLACK );
+        $bc : count(1);
+        $bc == 2
+    )
+    not DerivedFact( type == "KNIGHT_PAWN_VS_KING" )
+then
+    modify( $pos ) { setEndgameType( "KNIGHT_PAWN_VS_KING" ) }
+    insert( new DerivedFact(
+        "KNIGHT_PAWN_VS_KING", Piece.Color.BLACK,
+        "Knight + pawn vs. lone king — draw if defending king blockades or knight is wrong color.",
+        1, "de la Villa, Chapter 3, p.51"
+    ));
+end
+
+// Rule 8 - Rook vs Bishop Classification
+rule "Rook vs Bishop Classification"
+when
+    $pos : Position()
+    DerivedFact( type == "ENDGAME_DETECTED" )
+    not DerivedFact( type == "KING_PAWN_ENDGAME" )
+    not exists Piece( type == Piece.Type.PAWN )
+    accumulate(
+        Piece( type != Piece.Type.KING, color == Piece.Color.WHITE );
+        $wc : count(1);
+        $wc == 1
+    )
+    accumulate(
+        Piece( type != Piece.Type.KING, color == Piece.Color.BLACK );
+        $bc : count(1);
+        $bc == 1
+    )
+    ( ( exists Piece( type == Piece.Type.ROOK,   color == Piece.Color.WHITE ) and exists Piece( type == Piece.Type.BISHOP, color == Piece.Color.BLACK ) )
+    or ( exists Piece( type == Piece.Type.ROOK,   color == Piece.Color.BLACK ) and exists Piece( type == Piece.Type.BISHOP, color == Piece.Color.WHITE ) ) )
+    not DerivedFact( type == "ROOK_VS_BISHOP" )
+then
+    modify( $pos ) { setEndgameType( "ROOK_VS_BISHOP" ) }
+    insert( new DerivedFact(
+        "ROOK_VS_BISHOP", null,
+        "King + Rook vs. King + Bishop (no pawns) — almost always a theoretical draw, with 'wrong corner' exception. (de la Villa, Endings 6-7, p.39-40)",
+        1, "de la Villa, Endings 6-7, p.39-40"
+    ));
+end
+
+// Rule 9 - Rook vs Knight Classification
+rule "Rook vs Knight Classification"
+when
+    $pos : Position()
+    DerivedFact( type == "ENDGAME_DETECTED" )
+    not DerivedFact( type == "KING_PAWN_ENDGAME" )
+    not exists Piece( type == Piece.Type.PAWN )
+    accumulate(
+        Piece( type != Piece.Type.KING, color == Piece.Color.WHITE );
+        $wc : count(1);
+        $wc == 1
+    )
+    accumulate(
+        Piece( type != Piece.Type.KING, color == Piece.Color.BLACK );
+        $bc : count(1);
+        $bc == 1
+    )
+    ( ( exists Piece( type == Piece.Type.ROOK,   color == Piece.Color.WHITE ) and exists Piece( type == Piece.Type.KNIGHT, color == Piece.Color.BLACK ) )
+    or ( exists Piece( type == Piece.Type.ROOK,   color == Piece.Color.BLACK ) and exists Piece( type == Piece.Type.KNIGHT, color == Piece.Color.WHITE ) ) )
+    not DerivedFact( type == "ROOK_VS_KNIGHT" )
+then
+    modify( $pos ) { setEndgameType( "ROOK_VS_KNIGHT" ) }
+    insert( new DerivedFact(
+        "ROOK_VS_KNIGHT", null,
+        "King + Rook vs. King + Knight (no pawns) — usually a theoretical draw, but knight at the edge or corner can be trapped and lost. (de la Villa, Endings 8-9, p.41-42)",
+        1, "de la Villa, Endings 8-9, p.41-42"
+    ));
+end
+
+// Rule 10 - Queen vs 7th-rank Pawn (White queen)
+rule "Queen vs Advanced Pawn Classification - White queen"
+salience 1
+when
+    $pos : Position()
+    DerivedFact( type == "ENDGAME_DETECTED" )
+    not DerivedFact( type == "KING_PAWN_ENDGAME" )
+    exists Piece( type == Piece.Type.QUEEN, color == Piece.Color.WHITE )
+    not exists Piece( type != Piece.Type.KING, type != Piece.Type.QUEEN, color == Piece.Color.WHITE )
+    exists Piece( type == Piece.Type.PAWN, color == Piece.Color.BLACK, square matches ".[2]" )
+    not exists Piece( type != Piece.Type.KING, type != Piece.Type.PAWN, color == Piece.Color.BLACK )
+    accumulate(
+        Piece( type == Piece.Type.PAWN, color == Piece.Color.BLACK );
+        $bp : count(1);
+        $bp == 1
+    )
+    not DerivedFact( type == "QUEEN_VS_ADVANCED_PAWN" )
+then
+    modify( $pos ) { setEndgameType( "QUEEN_VS_ADVANCED_PAWN" ) }
+    insert( new DerivedFact(
+        "QUEEN_VS_ADVANCED_PAWN", Piece.Color.WHITE,
+        "King + Queen vs. King + 2nd-rank pawn — outcome depends on pawn file. Rook or bishop pawn may draw via stalemate. (de la Villa, Endings 16-18, p.59-62)",
+        1, "de la Villa, Endings 16-18, p.59-62"
+    ));
+end
+
+// Rule 10b - Queen vs 7th-rank Pawn (Black queen)
+rule "Queen vs Advanced Pawn Classification - Black queen"
+salience 1
+when
+    $pos : Position()
+    DerivedFact( type == "ENDGAME_DETECTED" )
+    not DerivedFact( type == "KING_PAWN_ENDGAME" )
+    exists Piece( type == Piece.Type.QUEEN, color == Piece.Color.BLACK )
+    not exists Piece( type != Piece.Type.KING, type != Piece.Type.QUEEN, color == Piece.Color.BLACK )
+    exists Piece( type == Piece.Type.PAWN, color == Piece.Color.WHITE, square matches ".[7]" )
+    not exists Piece( type != Piece.Type.KING, type != Piece.Type.PAWN, color == Piece.Color.WHITE )
+    accumulate(
+        Piece( type == Piece.Type.PAWN, color == Piece.Color.WHITE );
+        $wp : count(1);
+        $wp == 1
+    )
+    not DerivedFact( type == "QUEEN_VS_ADVANCED_PAWN" )
+then
+    modify( $pos ) { setEndgameType( "QUEEN_VS_ADVANCED_PAWN" ) }
+    insert( new DerivedFact(
+        "QUEEN_VS_ADVANCED_PAWN", Piece.Color.BLACK,
+        "King + Queen vs. King + 7th-rank pawn — outcome depends on pawn file. Rook or bishop pawn may draw via stalemate. (de la Villa, Endings 16-18, p.59-62)",
+        1, "de la Villa, Endings 16-18, p.59-62"
+    ));
+end
+
+// Rule 11 - Unsupported Endgame Fallback
+rule "Unsupported Endgame Fallback"
+salience -10
+when
+    DerivedFact( type == "ENDGAME_DETECTED" )
+    not DerivedFact( type == "KING_PAWN_ENDGAME" )
+    not DerivedFact( type == "ROOK_PAWN_VS_ROOK" )
+    not DerivedFact( type == "PURE_ROOK_ENDGAME" )
+    not DerivedFact( type == "BISHOP_PAWN_VS_KING" )
+    not DerivedFact( type == "ROOK_PAWN_VS_KING" )
+    not DerivedFact( type == "KNIGHT_PAWN_VS_KING" )
+    not DerivedFact( type == "ROOK_VS_BISHOP" )
+    not DerivedFact( type == "ROOK_VS_KNIGHT" )
+    not DerivedFact( type == "QUEEN_VS_ADVANCED_PAWN" )
+    not DerivedFact( type == "UNSUPPORTED_ENDGAME" )
+then
+    insert( new DerivedFact(
+        "UNSUPPORTED_ENDGAME", null,
+        "This material configuration is not covered by the current knowledge base. Supported types: king-pawn, rook+pawn vs. rook, pure rook, bishop+pawn vs. king, rook+pawn vs. king, knight+pawn vs. king, rook vs. bishop, rook vs. knight, queen vs. 7th-rank pawn.",
+        1, "System design"
+    ));
+end

@@ -1,0 +1,37 @@
+package rules;
+
+import com.github.nikola352.chess_endgame_analyzer.model.models.Piece;
+
+declare DerivedFact
+    type        : String
+    side        : Piece.Color
+    explanation : String
+    level       : int
+    reference   : String
+end
+
+declare Recommendation
+    technique     : String
+    plan          : String
+    bookReference : String
+end
+
+declare CandidateMove
+    notation    : String
+    piece       : String
+    fromSquare  : String
+    toSquare    : String
+    quality     : String
+    explanation : String
+end
+
+declare AdjacentSquare
+    from : String
+    to   : String
+end
+
+declare KeySquare
+    pawnFile  : String
+    pawnColor : Piece.Color
+    square    : String
+end
