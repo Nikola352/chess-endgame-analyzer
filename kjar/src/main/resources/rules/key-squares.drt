@@ -1,0 +1,29 @@
+template header
+pawnColor
+pawnFile
+keyFile
+
+package rules;
+
+import com.github.nikola352.chess_endgame_analyzer.model.models.Piece;
+
+template "key-file-rules"
+
+rule "Derive Key Square - @{pawnColor} @{pawnFile}-pawn @{keyFile}-file_@{row.rowNumber}"
+when
+    DerivedFact( type == "KING_PAWN_ENDGAME" )
+    $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.@{pawnColor},
+                $psq : square,
+                square.substring(0, 1).equals("@{pawnFile}"),
+                "WHITE".equals("@{pawnColor}") ? square.charAt(1) <= '6' : square.charAt(1) >= '3' )
+    not KeySquare( pawnFile == "@{pawnFile}", pawnColor == "@{pawnColor}",
+                   square.substring(0, 1).equals("@{keyFile}") )
+then
+    char pr = $psq.charAt(1);
+    char keyRank = "WHITE".equals("@{pawnColor}")
+        ? (pr == '5' ? '6' : (char)(pr + 2))
+        : (pr == '4' ? '3' : (char)(pr - 2));
+    insert( new KeySquare("@{pawnFile}", "@{pawnColor}", "@{keyFile}" + keyRank) );
+end
+
+end template
