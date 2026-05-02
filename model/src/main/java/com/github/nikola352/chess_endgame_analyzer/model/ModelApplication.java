@@ -1,4 +1,4 @@
-package com.github.nikola352.chess_engame_analyzer.model;
+package com.github.nikola352.chess_endgame_analyzer.model;
 
 public class ModelApplication {
 

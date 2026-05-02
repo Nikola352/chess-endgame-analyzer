@@ -1,34 +1,42 @@
-package com.github.nikola352.chess_engame_analyzer.model.models;
+package com.github.nikola352.chess_endgame_analyzer.model.models;
 
 import java.util.Objects;
 
 public class Piece {
-    private String type;
-    private String color;
+    public enum Color {
+        WHITE, BLACK,
+    }
+
+    public enum Type {
+        KING, QUEEN, BISHOP, KNIGHT, ROOK, PAWN,
+    }
+
+    private Type type;
+    private Color color;
     private String square;
 
     public Piece() {
     }
 
-    public Piece(String type, String color, String square) {
+    public Piece(Type type, Color color, String square) {
         this.type = type;
         this.color = color;
         this.square = square;
     }
 
-    public String getType() {
+    public Type getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(Type type) {
         this.type = type;
     }
 
-    public String getColor() {
+    public Color getColor() {
         return color;
     }
 
-    public void setColor(String color) {
+    public void setColor(Color color) {
         this.color = color;
     }
 
