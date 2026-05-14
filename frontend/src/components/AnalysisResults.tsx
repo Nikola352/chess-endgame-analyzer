@@ -1,9 +1,5 @@
 import type { AnalyzeResponse, DerivedFact } from "../types";
 
-interface AnalysisResultsProps {
-  result: AnalyzeResponse;
-}
-
 const LEVEL_LABELS: Record<number, string> = {
   1: "Level 1 - Detection",
   2: "Level 2 - Evaluation",
@@ -25,6 +21,10 @@ function groupByLevel(facts: DerivedFact[]): Map<number, DerivedFact[]> {
     map.set(f.level, group);
   }
   return map;
+}
+
+interface AnalysisResultsProps {
+  result: AnalyzeResponse;
 }
 
 export function AnalysisResults({ result }: AnalysisResultsProps) {
@@ -67,14 +67,14 @@ export function AnalysisResults({ result }: AnalysisResultsProps) {
               {factsByLevel.get(level)!.map((fact, i) => (
                 <div
                   key={i}
-                  className="rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm"
+                  className="rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm"
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-mono text-xs text-amber-600 font-semibold">
                       {fact.type}
                     </span>
                     {fact.side && (
-                      <span className="text-xs px-1.5 py-0 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
+                      <span className="text-xs px-1.5 py-0 rounded bg-zinc-700 text-zinc-400 border border-zinc-600">
                         {fact.side}
                       </span>
                     )}
@@ -95,7 +95,7 @@ export function AnalysisResults({ result }: AnalysisResultsProps) {
           <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">
             Recommendation
           </h3>
-          <div className="rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm flex flex-col gap-1">
+          <div className="rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm flex flex-col gap-1">
             <span className="font-mono text-xs text-amber-600 font-semibold">
               {result.recommendation.technique}
             </span>
@@ -112,7 +112,7 @@ export function AnalysisResults({ result }: AnalysisResultsProps) {
           <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">
             Candidate Move
           </h3>
-          <div className="rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm flex flex-col gap-1">
+          <div className="rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <span className="font-mono font-bold text-zinc-100">
                 {result.candidateMove.notation}
@@ -124,7 +124,7 @@ export function AnalysisResults({ result }: AnalysisResultsProps) {
                 <span
                   className={`ml-auto text-xs font-semibold px-2 py-0.5 rounded ${
                     QUALITY_STYLES[result.candidateMove.quality] ??
-                    "bg-zinc-800 text-zinc-300 border border-zinc-700"
+                    "bg-zinc-700 text-zinc-300 border border-zinc-600"
                   }`}
                 >
                   {result.candidateMove.quality}

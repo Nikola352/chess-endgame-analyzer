@@ -52,7 +52,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+    <div className="min-h-screen bg-zinc-900 text-zinc-100">
       <header className="border-b border-zinc-800 px-6 py-4">
         <h1 className="text-xl font-bold text-white tracking-tight">
           Chess Endgame Analyzer
@@ -63,15 +63,13 @@ function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-8 items-start">
-          <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+          {/* Left column: board + compact inputs below */}
+          <div className="col-span-3 flex flex-col gap-3">
             <ChessBoard fen={activeFen} />
             <p className="text-center font-mono text-xs text-zinc-600 truncate px-2">
               {activeFen}
             </p>
-          </div>
-
-          <div className="flex flex-col gap-6">
             <ControlPanel
               inputFen={inputFen}
               fenError={fenError}
@@ -84,15 +82,20 @@ function App() {
               onCandidateMoveChange={setCandidateMove}
               onAnalyze={handleAnalyze}
             />
+          </div>
+
+          {/* Right column: reasoning chain, recommendation, candidate move */}
+          <div className="col-span-2 flex flex-col gap-4">
             {analyzeError && (
               <div className="text-red-400 text-sm border border-red-700 rounded p-3">
                 {analyzeError}
               </div>
             )}
-            {analyzeResult
-              ? <AnalysisResults result={analyzeResult} />
-              : <AnalysisPlaceholder />
-            }
+            {analyzeResult ? (
+              <AnalysisResults result={analyzeResult} />
+            ) : (
+              <AnalysisPlaceholder />
+            )}
           </div>
         </div>
       </main>
