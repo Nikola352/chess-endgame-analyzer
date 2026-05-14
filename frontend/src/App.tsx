@@ -13,7 +13,6 @@ function App() {
   const [inputFen, setInputFen] = useState(DEFAULT_FEN);
   const [activeFen, setActiveFen] = useState(DEFAULT_FEN);
   const [queryType, setQueryType] = useState<QueryType>("EVALUATE");
-  const [candidateMove, setCandidateMove] = useState("");
   const [fenError, setFenError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzeResult, setAnalyzeResult] = useState<AnalyzeResponse | null>(null);
@@ -41,7 +40,6 @@ function App() {
       const result = await analyzePosition({
         fen: activeFen,
         queryType,
-        candidateMove: candidateMove.trim() || undefined,
       });
       setAnalyzeResult(result);
     } catch (e) {
@@ -74,17 +72,15 @@ function App() {
               inputFen={inputFen}
               fenError={fenError}
               queryType={queryType}
-              candidateMove={candidateMove}
               isAnalyzing={isAnalyzing}
               onFenChange={handleFenChange}
               onFenLoad={handleFenLoad}
               onQueryTypeChange={setQueryType}
-              onCandidateMoveChange={setCandidateMove}
               onAnalyze={handleAnalyze}
             />
           </div>
 
-          {/* Right column: reasoning chain, recommendation, candidate move */}
+          {/* Right column: reasoning chain, recommendation */}
           <div className="col-span-2 flex flex-col gap-4">
             {analyzeError && (
               <div className="text-red-400 text-sm border border-red-700 rounded p-3">

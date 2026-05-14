@@ -1,18 +1,15 @@
 import type { QueryType } from "../types";
 import { FENInput } from "./FENInput";
 import { QuerySelector } from "./QuerySelector";
-import { CandidateMoveInput } from "./CandidateMoveInput";
 
 interface ControlPanelProps {
   inputFen: string;
   fenError: string | null;
   queryType: QueryType;
-  candidateMove: string;
   isAnalyzing: boolean;
   onFenChange: (fen: string) => void;
   onFenLoad: () => void;
   onQueryTypeChange: (qt: QueryType) => void;
-  onCandidateMoveChange: (move: string) => void;
   onAnalyze: () => void;
 }
 
@@ -20,12 +17,10 @@ export function ControlPanel({
   inputFen,
   fenError,
   queryType,
-  candidateMove,
   isAnalyzing,
   onFenChange,
   onFenLoad,
   onQueryTypeChange,
-  onCandidateMoveChange,
   onAnalyze,
 }: ControlPanelProps) {
   const analyzeDisabled = isAnalyzing || fenError !== null;
@@ -40,11 +35,6 @@ export function ControlPanel({
       />
       <div className="flex gap-2 items-center">
         <QuerySelector value={queryType} onChange={onQueryTypeChange} compact />
-        <CandidateMoveInput
-          value={candidateMove}
-          onChange={onCandidateMoveChange}
-          compact
-        />
         <button
           onClick={onAnalyze}
           disabled={analyzeDisabled}

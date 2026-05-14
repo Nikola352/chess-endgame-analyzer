@@ -33,7 +33,6 @@ public class KieConfig {
             "/rules/level1-detection.drl",
             "/rules/level2-evaluation.drl",
             "/rules/level3-recommendations.drl",
-            "/rules/level4-candidate-moves.drl"
         };
         for (String path : drlFiles) {
             InputStream is = KieConfig.class.getResourceAsStream(path);

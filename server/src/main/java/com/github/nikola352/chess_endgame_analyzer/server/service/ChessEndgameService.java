@@ -26,7 +26,6 @@ public class ChessEndgameService {
     private final KieBase kieBase;
     private final FenParser fenParser;
     private final FactType adjacentSquareType;
-    private final FactType candidateMoveType;
     private final FactType derivedFactType;
     private final FactType recommendationType;
 
@@ -34,7 +33,6 @@ public class ChessEndgameService {
         this.kieBase = kieBase;
         this.fenParser = fenParser;
         this.adjacentSquareType = kieBase.getFactType("rules", "AdjacentSquare");
-        this.candidateMoveType = kieBase.getFactType("rules", "CandidateMove");
         this.derivedFactType = kieBase.getFactType("rules", "DerivedFact");
         this.recommendationType = kieBase.getFactType("rules", "Recommendation");
     }
@@ -44,7 +42,7 @@ public class ChessEndgameService {
             throw new IllegalArgumentException("queryType is required");
         }
         FenParser.Result parsed = fenParser.parse(request.getFen());
-        KieSession kSession = prepareSession(request, parsed);
+        KieSession kSession = prepareSession(parsed);
         try {
             kSession.addEventListener(new DefaultAgendaEventListener() {
                 @Override
@@ -74,7 +72,6 @@ public class ChessEndgameService {
 
             List<DerivedFactDto> derivedFacts = collectDerivedFacts(kSession, insertionOrder);
             RecommendationDto recommendation = collectRecommendation(kSession);
-            CandidateMoveDto candidateMove = collectCandidateMove(kSession);
 
             Position position = (Position) kSession.getObjects(o -> o instanceof Position)
                     .stream().findFirst().orElse(null);
@@ -86,7 +83,6 @@ public class ChessEndgameService {
                     endgameType,
                     derivedFacts,
                     recommendation,
-                    candidateMove,
                     theoreticalDraw
             );
         } finally {
@@ -94,7 +90,7 @@ public class ChessEndgameService {
         }
     }
 
-    private KieSession prepareSession(AnalyzeRequestDto request, FenParser.Result parsed) {
+    private KieSession prepareSession(FenParser.Result parsed) {
         KieSession kSession = kieBase.newKieSession();
 
         kSession.insert(parsed.getPosition());
@@ -103,10 +99,6 @@ public class ChessEndgameService {
         }
 
         insertAdjacentSquares(kSession);
-
-        if (request.getCandidateMove() != null && !request.getCandidateMove().isBlank()) {
-            insertCandidateMove(kSession, request.getCandidateMove(), parsed);
-        }
 
         return kSession;
     }
@@ -133,42 +125,6 @@ public class ChessEndgameService {
             }
         } catch (InstantiationException | IllegalAccessException e) {
             throw new RuntimeException("Failed to instantiate AdjacentSquare", e);
-        }
-    }
-
-    private void insertCandidateMove(KieSession kSession, String notation, FenParser.Result parsed) {
-        String trimmed = notation.trim();
-        String toSquare = trimmed.substring(trimmed.length() - 2);
-        String pieceStr;
-        switch (trimmed.charAt(0)) {
-            case 'K': pieceStr = Piece.Type.KING.name(); break;
-            case 'Q': pieceStr = Piece.Type.QUEEN.name(); break;
-            case 'R': pieceStr = Piece.Type.ROOK.name(); break;
-            case 'B': pieceStr = Piece.Type.BISHOP.name(); break;
-            case 'N': pieceStr = Piece.Type.KNIGHT.name(); break;
-            default:  pieceStr = Piece.Type.PAWN.name(); break;
-        }
-
-        Piece.Color sideToMove = parsed.getPosition().getSideToMove();
-        Piece.Type movingType = Piece.Type.valueOf(pieceStr);
-
-        String fromSquare = parsed.getPieces().stream()
-                .filter(p -> p.getType() == movingType && p.getColor() == sideToMove)
-                .map(Piece::getSquare)
-                .findFirst()
-                .orElse(null);
-
-        try {
-            Object cm = candidateMoveType.newInstance();
-            candidateMoveType.set(cm, "notation", notation);
-            candidateMoveType.set(cm, "piece", pieceStr);
-            candidateMoveType.set(cm, "fromSquare", fromSquare);
-            candidateMoveType.set(cm, "toSquare", toSquare);
-            candidateMoveType.set(cm, "quality", null);
-            candidateMoveType.set(cm, "explanation", null);
-            kSession.insert(cm);
-        } catch (InstantiationException | IllegalAccessException e) {
-            throw new RuntimeException("Failed to instantiate CandidateMove", e);
         }
     }
 
@@ -199,20 +155,6 @@ public class ChessEndgameService {
                         (String) recommendationType.get(obj, "technique"),
                         (String) recommendationType.get(obj, "plan"),
                         (String) recommendationType.get(obj, "bookReference")))
-                .orElse(null);
-    }
-
-    private CandidateMoveDto collectCandidateMove(KieSession kSession) {
-        return kSession.getObjects(o -> o.getClass().getSimpleName().equals("CandidateMove"))
-                .stream()
-                .findFirst()
-                .map(obj -> new CandidateMoveDto(
-                        (String) candidateMoveType.get(obj, "notation"),
-                        (String) candidateMoveType.get(obj, "piece"),
-                        (String) candidateMoveType.get(obj, "fromSquare"),
-                        (String) candidateMoveType.get(obj, "toSquare"),
-                        (String) candidateMoveType.get(obj, "quality"),
-                        (String) candidateMoveType.get(obj, "explanation")))
                 .orElse(null);
     }
 }

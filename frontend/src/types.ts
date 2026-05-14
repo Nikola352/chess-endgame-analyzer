@@ -14,19 +14,9 @@ export interface Recommendation {
   bookReference: string;
 }
 
-export interface CandidateMove {
-  notation: string;
-  piece: string;
-  fromSquare: string;
-  toSquare: string;
-  quality: string | null;
-  explanation: string | null;
-}
-
 export interface AnalyzeRequest {
   fen: string;
   queryType: QueryType;
-  candidateMove?: string;
 }
 
 export interface AnalyzeResponse {
@@ -35,6 +25,5 @@ export interface AnalyzeResponse {
   endgameType: string;
   derivedFacts: DerivedFact[];
   recommendation: Recommendation | null;
-  candidateMove: CandidateMove | null;
   theoreticalDraw: boolean | null;
 }

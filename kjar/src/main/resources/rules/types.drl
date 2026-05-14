@@ -16,15 +16,6 @@ declare Recommendation
     bookReference : String
 end
 
-declare CandidateMove
-    notation    : String
-    piece       : String
-    fromSquare  : String
-    toSquare    : String
-    quality     : String
-    explanation : String
-end
-
 declare AdjacentSquare
     from : String
     to   : String
