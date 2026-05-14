@@ -34,7 +34,7 @@ end
 // Depth 4 matches the Chebyshev distance <= 4 threshold in forward rule 28.
 query "isWrongColorBishopDraw"
     DerivedFact(type == "WRONG_COLOR_BISHOP", $attackSide : side)
-    $defSide : String() from (Piece.Color.WHITE.equals($attackSide) ? Piece.Color.BLACK : Piece.Color.WHITE)
+    $defSide : Piece.Color() from (Piece.Color.WHITE.equals($attackSide) ? Piece.Color.BLACK : Piece.Color.WHITE)
     Piece(type == Piece.Type.PAWN, color == $attackSide, square matches "[ah][1-8]", $pFile : square.substring(0,1))
     $corner : String() from (Piece.Color.WHITE.equals($attackSide) ? $pFile + "8" : $pFile + "1")
     Piece(type == Piece.Type.KING, color == $defSide, $dkSq : square)
@@ -55,27 +55,25 @@ query "isRookPawnEdgeDraw"
     DerivedFact(type == "ROOK_PAWN_EDGE", $attackSide : side)
     not DerivedFact(type == "KEY_SQUARE_OCCUPIED")
     Piece(type == Piece.Type.PAWN, color == $attackSide, square matches "[ah][1-8]", $pFile : square.substring(0,1))
-    $defSide : String() from (Piece.Color.WHITE.equals($attackSide) ? Piece.Color.BLACK : Piece.Color.WHITE)
+    $defSide : Piece.Color() from (Piece.Color.WHITE.equals($attackSide) ? Piece.Color.BLACK : Piece.Color.WHITE)
     $corner : String() from (Piece.Color.WHITE.equals($attackSide) ? $pFile + "8" : $pFile + "1")
     Piece(type == Piece.Type.KING, color == $defSide, $dkSq : square)
     canKingReach($dkSq, $corner, 3;)
 end
 
-// Query 6 - Stalemate resource exists in queen vs advanced pawn positions.
-// Branch A: rook pawn on edge file (stalemate in corner).
-// Branch B: bishop pawn (c/f file) with defending king blocking on the same file.
-query "isStalematePossible"
+// Query 6a - Stalemate via rook pawn on edge file (a or h).
+query "isStalemateRookPawnPossible"
     DerivedFact(type == "QUEEN_VS_ADVANCED_PAWN", $attackSide : side)
-    $defSide : String() from (Piece.Color.WHITE.equals($attackSide) ? Piece.Color.BLACK : Piece.Color.WHITE)
-    (
-        exists Piece(type == Piece.Type.PAWN, color == $defSide, square matches "[ah][1-8]")
-        or
-        (
-            Piece(type == Piece.Type.PAWN, color == $defSide, $pSq : square, square matches "[cf][1-8]")
-            and Piece(type == Piece.Type.KING, color == $defSide, $dkSq : square)
-            and eval($dkSq.charAt(0) == $pSq.charAt(0))
-        )
-    )
+    $defSide : Piece.Color() from (Piece.Color.WHITE.equals($attackSide) ? Piece.Color.BLACK : Piece.Color.WHITE)
+    Piece(type == Piece.Type.PAWN, color == $defSide, square matches "[ah][1-8]")
+end
+
+// Query 6b - Stalemate via bishop pawn (c or f file) with defending king on same file.
+query "isStalemateBishopPawnPossible"
+    DerivedFact(type == "QUEEN_VS_ADVANCED_PAWN", $attackSide : side)
+    $defSide : Piece.Color() from (Piece.Color.WHITE.equals($attackSide) ? Piece.Color.BLACK : Piece.Color.WHITE)
+    Piece(type == Piece.Type.PAWN, color == $defSide, $pFile : square.substring(0,1), square matches "[cf][1-8]")
+    Piece(type == Piece.Type.KING, color == $defSide, $dkSq : square, square.substring(0,1) == $pFile)
 end
 
 // Query 7 - Top-level draw query: the position is a theoretical draw if any sub-query succeeds.
@@ -88,5 +86,7 @@ query "isTheoreticalDraw"
     or
     isRookPawnEdgeDraw()
     or
-    isStalematePossible()
+    isStalemateRookPawnPossible()
+    or
+    isStalemateBishopPawnPossible()
 end

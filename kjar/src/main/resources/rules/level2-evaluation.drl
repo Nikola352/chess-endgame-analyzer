@@ -80,8 +80,8 @@ when
     DerivedFact( type == "WRONG_COLOR_BISHOP", side == Piece.Color.WHITE )
     $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.WHITE, $pFile : square.substring(0,1) )
     Piece( type == Piece.Type.KING, color == Piece.Color.BLACK, $bkSq : square,
-           Math.max( Math.abs($bkSq.charAt(0) - ($pFile.charAt(0) == 'a' ? 'a' : 'h')),
-                     Math.abs($bkSq.charAt(1) - '8') ) <= 4 )
+           Math.max( Math.abs($bkSq.codePointAt(0) - ($pFile.codePointAt(0) == 97 ? 97 : 104)),
+                     Math.abs($bkSq.codePointAt(1) - 56) ) <= 4 )
     not DerivedFact( type == "THEORETICAL_DRAW" )
 then
     String corner = $pFile + "8";
@@ -98,8 +98,8 @@ when
     DerivedFact( type == "WRONG_COLOR_BISHOP", side == Piece.Color.BLACK )
     $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.BLACK, $pFile : square.substring(0,1) )
     Piece( type == Piece.Type.KING, color == Piece.Color.WHITE, $wkSq : square,
-           Math.max( Math.abs($wkSq.charAt(0) - ($pFile.charAt(0) == 'a' ? 'a' : 'h')),
-                     Math.abs($wkSq.charAt(1) - '1') ) <= 4 )
+           Math.max( Math.abs($wkSq.codePointAt(0) - ($pFile.codePointAt(0) == 97 ? 97 : 104)),
+                     Math.abs($wkSq.codePointAt(1) - 49) ) <= 4 )
     not DerivedFact( type == "THEORETICAL_DRAW" )
 then
     String corner = $pFile + "1";
@@ -130,10 +130,10 @@ when
     DerivedFact( type == "ROOK_PAWN_VS_KING", $s : side )
     DerivedFact( type == "ROOK_PAWN_EDGE", side == $s )
     $p : Piece( type == Piece.Type.PAWN, color == $s, $pSq : square )
-    $defColor : String() from ( Piece.Color.WHITE.equals($s) ? Piece.Color.BLACK : Piece.Color.WHITE )
+    $defColor : Piece.Color() from ( Piece.Color.WHITE.equals($s) ? Piece.Color.BLACK : Piece.Color.WHITE )
     Piece( type == Piece.Type.KING, color == $defColor, $dkSq : square,
-           Math.max( Math.abs($dkSq.charAt(0) - ($pSq.charAt(0) == 'a' ? 'a' : 'h')),
-                     Math.abs($dkSq.charAt(1) - ( Piece.Color.WHITE.equals($s) ? '8' : '1' )) ) > 3 )
+           Math.max( Math.abs($dkSq.codePointAt(0) - ($pSq.codePointAt(0) == 97 ? 97 : 104)),
+                     Math.abs($dkSq.codePointAt(1) - ( Piece.Color.WHITE.equals($s) ? 56 : 49 )) ) > 3 )
     not DerivedFact( type == "WINNING_POSITION", side == $s )
     not DerivedFact( type == "THEORETICAL_DRAW" )
 then
@@ -150,10 +150,10 @@ when
     DerivedFact( type == "ROOK_PAWN_VS_KING", $s : side )
     DerivedFact( type == "ROOK_PAWN_EDGE", side == $s )
     $p : Piece( type == Piece.Type.PAWN, color == $s, $pSq : square )
-    $defColor : String() from ( Piece.Color.WHITE.equals($s) ? Piece.Color.BLACK : Piece.Color.WHITE )
+    $defColor : Piece.Color() from ( Piece.Color.WHITE.equals($s) ? Piece.Color.BLACK : Piece.Color.WHITE )
     Piece( type == Piece.Type.KING, color == $defColor, $dkSq : square,
-           Math.max( Math.abs($dkSq.charAt(0) - ($pSq.charAt(0) == 'a' ? 'a' : 'h')),
-                     Math.abs($dkSq.charAt(1) - ( Piece.Color.WHITE.equals($s) ? '8' : '1' )) ) <= 3 )
+           Math.max( Math.abs($dkSq.codePointAt(0) - ($pSq.codePointAt(0) == 97 ? 97 : 104)),
+                     Math.abs($dkSq.codePointAt(1) - ( Piece.Color.WHITE.equals($s) ? 56 : 49 )) ) <= 3 )
     not DerivedFact( type == "THEORETICAL_DRAW" )
 then
     insert( new DerivedFact(
@@ -207,13 +207,13 @@ rule "Rook vs Bishop Likely Draw"
 when
     DerivedFact( type == "ROOK_VS_BISHOP" )
     $b : Piece( type == Piece.Type.BISHOP, $bSq : square )
-    $defKingColor : String() from ( $b.getColor() )
+    $defKingColor : Piece.Color() from ( $b.getColor() )
     Piece( type == Piece.Type.KING, color == $defKingColor, $dkSq : square )
     not DerivedFact( type == "LIKELY_DRAW" )
     not DerivedFact( type == "WINNING_POSITION" )
 then
-    int bParity = ($b.getSquare().charAt(0) - 'a' + $b.getSquare().charAt(1) - '1') % 2;
-    int dkParity = ($dkSq.charAt(0) - 'a' + $dkSq.charAt(1) - '1') % 2;
+    int bParity = ($b.getSquare().codePointAt(0) - 97 + $b.getSquare().codePointAt(1) - 49) % 2;
+    int dkParity = ($dkSq.codePointAt(0) - 97 + $dkSq.codePointAt(1) - 49) % 2;
     boolean inCorner = ($dkSq.equals("a1") || $dkSq.equals("a8") || $dkSq.equals("h1") || $dkSq.equals("h8"));
     if ( !inCorner || bParity == dkParity ) {
         insert( new DerivedFact(
@@ -229,17 +229,17 @@ rule "Rook vs Bishop Winning - Wrong Corner"
 when
     DerivedFact( type == "ROOK_VS_BISHOP" )
     $b : Piece( type == Piece.Type.BISHOP, $bSq : square )
-    $defKingColor : String() from ( $b.getColor() )
-    $atkKingColor : String() from ( Piece.Color.WHITE.equals($defKingColor) ? Piece.Color.BLACK : Piece.Color.WHITE )
+    $defKingColor : Piece.Color() from ( $b.getColor() )
+    $atkKingColor : Piece.Color() from ( Piece.Color.WHITE.equals($defKingColor) ? Piece.Color.BLACK : Piece.Color.WHITE )
     Piece( type == Piece.Type.KING, color == $defKingColor, $dkSq : square,
            $dkSq.equals("a1") || $dkSq.equals("a8") || $dkSq.equals("h1") || $dkSq.equals("h8") )
     Piece( type == Piece.Type.KING, color == $atkKingColor, $akSq : square,
-           Math.max( Math.abs($akSq.charAt(0) - $dkSq.charAt(0)),
-                     Math.abs($akSq.charAt(1) - $dkSq.charAt(1)) ) <= 3 )
+           Math.max( Math.abs($akSq.codePointAt(0) - $dkSq.codePointAt(0)),
+                     Math.abs($akSq.codePointAt(1) - $dkSq.codePointAt(1)) ) <= 3 )
     not DerivedFact( type == "WINNING_POSITION" )
 then
-    int bParity  = ($b.getSquare().charAt(0) - 'a' + $b.getSquare().charAt(1) - '1') % 2;
-    int dkParity = ($dkSq.charAt(0) - 'a' + $dkSq.charAt(1) - '1') % 2;
+    int bParity  = ($b.getSquare().codePointAt(0) - 97 + $b.getSquare().codePointAt(1) - 49) % 2;
+    int dkParity = ($dkSq.codePointAt(0) - 97 + $dkSq.codePointAt(1) - 49) % 2;
     if ( bParity != dkParity ) {
         insert( new DerivedFact(
             "WINNING_POSITION", $atkKingColor,
@@ -254,7 +254,7 @@ rule "Rook vs Knight Winning - Knight on Edge"
 when
     DerivedFact( type == "ROOK_VS_KNIGHT", $knEdge : type )
     DerivedFact( type == "KNIGHT_ON_EDGE", $knColor : side )
-    $atkColor : String() from ( Piece.Color.WHITE.equals($knColor) ? Piece.Color.BLACK : Piece.Color.WHITE )
+    $atkColor : Piece.Color() from ( Piece.Color.WHITE.equals($knColor) ? Piece.Color.BLACK : Piece.Color.WHITE )
     not DerivedFact( type == "WINNING_POSITION" )
 then
     insert( new DerivedFact(
@@ -292,15 +292,31 @@ then
     ));
 end
 
-rule "Queen vs Advanced Pawn Draw - Bishop Pawn, King Blocking"
+rule "Queen vs Advanced Pawn Draw - Bishop Pawn, King Blocking White"
 when
-    DerivedFact( type == "QUEEN_VS_ADVANCED_PAWN", $qs : side )
-    $defColor : String() from ( Piece.Color.WHITE.equals($qs) ? Piece.Color.BLACK : Piece.Color.WHITE )
-    $p : Piece( type == Piece.Type.PAWN, color == $defColor, $pSq : square,
-                ( square.charAt(0) == 'c' || square.charAt(0) == 'f' ) )
-    Piece( type == Piece.Type.KING, color == $defColor, $dkSq : square,
-           $dkSq.charAt(0) == $pSq.charAt(0),
-           ( Piece.Color.WHITE.equals($qs) ? $dkSq.charAt(1) < $pSq.charAt(1) : $dkSq.charAt(1) > $pSq.charAt(1) ) )
+    DerivedFact( type == "QUEEN_VS_ADVANCED_PAWN", side == Piece.Color.WHITE )
+    $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.BLACK, $pSq : square,
+                ( square.codePointAt(0) == 99 || square.codePointAt(0) == 102 ) )
+    Piece( type == Piece.Type.KING, color == Piece.Color.BLACK, $dkSq : square,
+           $dkSq.codePointAt(0) == $pSq.codePointAt(0),
+           $dkSq.codePointAt(1) < $pSq.codePointAt(1) )
+    not DerivedFact( type == "THEORETICAL_DRAW" )
+then
+    insert( new DerivedFact(
+        "THEORETICAL_DRAW", null,
+        "Queen cannot force a win against a bishop's pawn with the defending king blocking — stalemate tricks apply. (de la Villa, Ending 18, p.62; Silman, Part Four (Class C))",
+        2, "de la Villa, Ending 18, p.62; Silman, Part Four (Class C)"
+    ));
+end
+
+rule "Queen vs Advanced Pawn Draw - Bishop Pawn, King Blocking Black"
+when
+    DerivedFact( type == "QUEEN_VS_ADVANCED_PAWN", side == Piece.Color.BLACK )
+    $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.WHITE, $pSq : square,
+                ( square.codePointAt(0) == 99 || square.codePointAt(0) == 102 ) )
+    Piece( type == Piece.Type.KING, color == Piece.Color.WHITE, $dkSq : square,
+           $dkSq.codePointAt(0) == $pSq.codePointAt(0),
+           $dkSq.codePointAt(1) > $pSq.codePointAt(1) )
     not DerivedFact( type == "THEORETICAL_DRAW" )
 then
     insert( new DerivedFact(
@@ -314,7 +330,7 @@ end
 rule "Queen vs Advanced Pawn Win"
 when
     DerivedFact( type == "QUEEN_VS_ADVANCED_PAWN", $qs : side )
-    $defColor : String() from ( Piece.Color.WHITE.equals($qs) ? Piece.Color.BLACK : Piece.Color.WHITE )
+    $defColor : Piece.Color() from ( Piece.Color.WHITE.equals($qs) ? Piece.Color.BLACK : Piece.Color.WHITE )
     exists Piece( type == Piece.Type.PAWN, color == $defColor,
                   square matches "[bdeg][1-8]" )
     not DerivedFact( type == "WINNING_POSITION", side == $qs )

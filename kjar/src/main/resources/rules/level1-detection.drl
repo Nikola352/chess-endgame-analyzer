@@ -12,11 +12,11 @@ when
     DerivedFact( type == "KING_PAWN_ENDGAME" )
     Piece( type == Piece.Type.KING, color == Piece.Color.WHITE, $wk : square )
     Piece( type == Piece.Type.KING, color == Piece.Color.BLACK, $bk : square,
-           ( $bk.charAt(0) == $wk.charAt(0) && Math.abs($bk.charAt(1) - $wk.charAt(1)) == 2 )
-        || ( $bk.charAt(1) == $wk.charAt(1) && Math.abs($bk.charAt(0) - $wk.charAt(0)) == 2 ) )
+           ( $bk.codePointAt(0) == $wk.codePointAt(0) && Math.abs($bk.codePointAt(1) - $wk.codePointAt(1)) == 2 )
+        || ( $bk.codePointAt(1) == $wk.codePointAt(1) && Math.abs($bk.codePointAt(0) - $wk.codePointAt(0)) == 2 ) )
     not DerivedFact( type == "DIRECT_OPPOSITION" )
 then
-    String holder = Piece.Color.WHITE.equals($stm) ? Piece.Color.BLACK : Piece.Color.WHITE;
+    Piece.Color holder = "WHITE".equals($stm) ? Piece.Color.BLACK : Piece.Color.WHITE;
     insert( new DerivedFact(
         "DIRECT_OPPOSITION", holder,
         "Kings are in direct opposition. The side to move (" + $stm + ") must step aside, conceding ground.",
@@ -31,8 +31,8 @@ when
     DerivedFact( type == "KING_PAWN_ENDGAME" )
     Piece( type == Piece.Type.KING, color == Piece.Color.WHITE, $wk : square )
     Piece( type == Piece.Type.KING, color == Piece.Color.BLACK, $bk : square,
-           ( $bk.charAt(0) == $wk.charAt(0) && ( Math.abs($bk.charAt(1) - $wk.charAt(1)) == 4 || Math.abs($bk.charAt(1) - $wk.charAt(1)) == 6 ) )
-        || ( $bk.charAt(1) == $wk.charAt(1) && ( Math.abs($bk.charAt(0) - $wk.charAt(0)) == 4 || Math.abs($bk.charAt(0) - $wk.charAt(0)) == 6 ) ) )
+           ( $bk.codePointAt(0) == $wk.codePointAt(0) && ( Math.abs($bk.codePointAt(1) - $wk.codePointAt(1)) == 4 || Math.abs($bk.codePointAt(1) - $wk.codePointAt(1)) == 6 ) )
+        || ( $bk.codePointAt(1) == $wk.codePointAt(1) && ( Math.abs($bk.codePointAt(0) - $wk.codePointAt(0)) == 4 || Math.abs($bk.codePointAt(0) - $wk.codePointAt(0)) == 6 ) ) )
     not DerivedFact( type == "DISTANT_OPPOSITION" )
 then
     insert( new DerivedFact(
@@ -50,8 +50,8 @@ when
     Position( sideToMove == Piece.Color.WHITE )
     $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.WHITE, $ps : square )
     Piece( type == Piece.Type.KING, color == Piece.Color.BLACK, $bk : square,
-           Math.max( Math.abs($bk.charAt(0) - ($ps.charAt(0) - 'a' + 'a')), Math.abs($bk.charAt(1) - '8') )
-               > ('8' - $ps.charAt(1)) )
+           Math.max( Math.abs($bk.codePointAt(0) - ($ps.codePointAt(0) - 97 + 97)), Math.abs($bk.codePointAt(1) - 56) )
+               > (56 - $ps.codePointAt(1)) )
     not DerivedFact( type == "PAWN_PROMOTES_FREELY", side == Piece.Color.WHITE )
 then
     insert( new DerivedFact(
@@ -69,8 +69,8 @@ when
     Position( sideToMove == Piece.Color.BLACK )
     $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.WHITE, $ps : square )
     Piece( type == Piece.Type.KING, color == Piece.Color.BLACK, $bk : square,
-           Math.max( Math.abs($bk.charAt(0) - $ps.charAt(0)), Math.abs($bk.charAt(1) - '8') )
-               > ('8' - $ps.charAt(1) - 1) )
+           Math.max( Math.abs($bk.codePointAt(0) - $ps.codePointAt(0)), Math.abs($bk.codePointAt(1) - 56) )
+               > (56 - $ps.codePointAt(1) - 1) )
     not DerivedFact( type == "PAWN_PROMOTES_FREELY", side == Piece.Color.WHITE )
 then
     insert( new DerivedFact(
@@ -87,8 +87,8 @@ when
     Position( sideToMove == Piece.Color.BLACK )
     $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.BLACK, $ps : square )
     Piece( type == Piece.Type.KING, color == Piece.Color.WHITE, $wk : square,
-           Math.max( Math.abs($wk.charAt(0) - $ps.charAt(0)), Math.abs($wk.charAt(1) - '1') )
-               > ($ps.charAt(1) - '1') )
+           Math.max( Math.abs($wk.codePointAt(0) - $ps.codePointAt(0)), Math.abs($wk.codePointAt(1) - 49) )
+               > ($ps.codePointAt(1) - 49) )
     not DerivedFact( type == "PAWN_PROMOTES_FREELY", side == Piece.Color.BLACK )
 then
     insert( new DerivedFact(
@@ -105,8 +105,8 @@ when
     Position( sideToMove == Piece.Color.WHITE )
     $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.BLACK, $ps : square )
     Piece( type == Piece.Type.KING, color == Piece.Color.WHITE, $wk : square,
-           Math.max( Math.abs($wk.charAt(0) - $ps.charAt(0)), Math.abs($wk.charAt(1) - '1') )
-               > ($ps.charAt(1) - '1' - 1) )
+           Math.max( Math.abs($wk.codePointAt(0) - $ps.codePointAt(0)), Math.abs($wk.codePointAt(1) - 49) )
+               > ($ps.codePointAt(1) - 49 - 1) )
     not DerivedFact( type == "PAWN_PROMOTES_FREELY", side == Piece.Color.BLACK )
 then
     insert( new DerivedFact(
@@ -146,8 +146,8 @@ when
     not DerivedFact( type == "WRONG_COLOR_BISHOP" )
 then
     String promSq = $pFile + "8";
-    int bColor  = ($b.getSquare().charAt(0) - 'a' + $b.getSquare().charAt(1) - '1') % 2;
-    int psColor = (promSq.charAt(0) - 'a' + promSq.charAt(1) - '1') % 2;
+    int bColor  = ($b.getSquare().codePointAt(0) - 97 + $b.getSquare().codePointAt(1) - 49) % 2;
+    int psColor = (promSq.codePointAt(0) - 97 + promSq.codePointAt(1) - 49) % 2;
     if ( bColor != psColor ) {
         insert( new DerivedFact(
             "WRONG_COLOR_BISHOP", Piece.Color.WHITE,
@@ -168,8 +168,8 @@ when
     not DerivedFact( type == "WRONG_COLOR_BISHOP" )
 then
     String promSq = $pFile + "1";
-    int bColor  = ($b.getSquare().charAt(0) - 'a' + $b.getSquare().charAt(1) - '1') % 2;
-    int psColor = (promSq.charAt(0) - 'a' + promSq.charAt(1) - '1') % 2;
+    int bColor  = ($b.getSquare().codePointAt(0) - 97 + $b.getSquare().codePointAt(1) - 49) % 2;
+    int psColor = (promSq.codePointAt(0) - 97 + promSq.codePointAt(1) - 49) % 2;
     if ( bColor != psColor ) {
         insert( new DerivedFact(
             "WRONG_COLOR_BISHOP", Piece.Color.BLACK,
@@ -248,8 +248,8 @@ rule "Knight on the Edge"
 when
     DerivedFact( type == "ROOK_VS_KNIGHT" )
     $kn : Piece( type == Piece.Type.KNIGHT, $knColor : color, $knSq : square,
-                 square.charAt(0) == 'a' || square.charAt(0) == 'h'
-              || square.charAt(1) == '1' || square.charAt(1) == '8' )
+                 square.codePointAt(0) == 97 || square.codePointAt(0) == 104
+              || square.codePointAt(1) == 49 || square.codePointAt(1) == 56 )
     not DerivedFact( type == "KNIGHT_ON_EDGE" )
 then
     insert( new DerivedFact(
@@ -292,8 +292,8 @@ when
     DerivedFact( type == "KING_PAWN_ENDGAME" )
     $pawn : Piece( type == Piece.Type.PAWN,  color == Piece.Color.WHITE, $ps : square )
     Piece( type == Piece.Type.KING, color == Piece.Color.WHITE, $ks : square,
-           $ks.charAt(0) == $ps.charAt(0),
-           $ks.charAt(1) - $ps.charAt(1) == 1 )
+           $ks.codePointAt(0) == $ps.codePointAt(0),
+           $ks.codePointAt(1) - $ps.codePointAt(1) == 1 )
     not DerivedFact( type == "KING_LEADS_PAWN", side == Piece.Color.WHITE )
 then
     insert( new DerivedFact(
@@ -308,8 +308,8 @@ when
     DerivedFact( type == "KING_PAWN_ENDGAME" )
     $pawn : Piece( type == Piece.Type.PAWN,  color == Piece.Color.BLACK, $ps : square )
     Piece( type == Piece.Type.KING, color == Piece.Color.BLACK, $ks : square,
-           $ks.charAt(0) == $ps.charAt(0),
-           $ps.charAt(1) - $ks.charAt(1) == 1 )
+           $ks.codePointAt(0) == $ps.codePointAt(0),
+           $ps.codePointAt(1) - $ks.codePointAt(1) == 1 )
     not DerivedFact( type == "KING_LEADS_PAWN", side == Piece.Color.BLACK )
 then
     insert( new DerivedFact(
