@@ -3,14 +3,23 @@ interface FENInputProps {
   fenError: string | null;
   onChange: (fen: string) => void;
   onLoad: () => void;
+  onRandomPosition: () => void;
 }
 
-export function FENInput({ inputFen, fenError, onChange, onLoad }: FENInputProps) {
+export function FENInput({ inputFen, fenError, onChange, onLoad, onRandomPosition }: FENInputProps) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-zinc-400 text-xs font-medium uppercase tracking-wider">
-        FEN
-      </label>
+      <div className="flex items-center justify-between">
+        <label className="text-zinc-400 text-xs font-medium uppercase tracking-wider">
+          FEN
+        </label>
+        <button
+          onClick={onRandomPosition}
+          className="text-zinc-500 hover:text-zinc-300 text-xs underline underline-offset-2 transition-colors cursor-pointer"
+        >
+          Try random position
+        </button>
+      </div>
       <div className="flex gap-2">
         <input
           type="text"

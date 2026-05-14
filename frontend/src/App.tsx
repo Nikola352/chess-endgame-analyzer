@@ -9,6 +9,24 @@ import { AnalysisResults } from "./components/AnalysisResults";
 
 const DEFAULT_FEN = "8/k7/8/P7/8/8/1K6/2B5 w - - 0 1";
 
+const EXAMPLE_POSITIONS = [
+  { label: "key square", fen: "8/8/8/2K1k3/8/3P4/8/8 w - - 0 1" },
+  { label: "defended key square", fen: "8/8/8/8/1k6/3P4/8/6K1 w - - 0 1" },
+  { label: "pawn promotes freely", fen: "8/8/1P2k3/8/8/8/8/7K w - - 0 1" },
+  {
+    label: "defender king catches pawn",
+    fen: "8/8/2k2P2/8/8/8/8/K7 b - - 0 1",
+  },
+  { label: "wrong color bishop", fen: "8/k7/8/P7/8/8/1K6/2B5 w - - 0 1" },
+  { label: "rook pawn stalemate", fen: "8/8/8/8/8/k7/p7/K7 b - - 0 1" },
+  { label: "philidor", fen: "4k3/R7/6r1/3KP3/8/8/8/8 w - - 0 1" },
+  { label: "not philidor", fen: "4k3/8/R7/3KP3/8/6r1/8/8 w - - 0 1" },
+  { label: "lucena", fen: "3K4/3P1k2/8/8/8/8/7r/4R3 w - - 0 1" },
+  { label: "rook only draw", fen: "8/8/1r1k4/8/8/5R2/8/K7 b - - 0 1" },
+  { label: "queen vs pawn stalemate", fen: "8/8/8/3K4/4Q3/8/7p/7k b - - 0 1" },
+  { label: "queen triangulation", fen: "8/8/8/3K4/4Q3/8/4p3/4k3 b - - 0 1" },
+];
+
 function App() {
   const [inputFen, setInputFen] = useState(DEFAULT_FEN);
   const [activeFen, setActiveFen] = useState(DEFAULT_FEN);
@@ -31,6 +49,14 @@ function App() {
     } catch (e) {
       setFenError((e as Error).message ?? "Invalid FEN string");
     }
+  }
+
+  function handleRandomPosition() {
+    const pos =
+      EXAMPLE_POSITIONS[Math.floor(Math.random() * EXAMPLE_POSITIONS.length)];
+    setInputFen(pos.fen);
+    setActiveFen(pos.fen);
+    setFenError(null);
   }
 
   async function handleAnalyze() {
@@ -75,6 +101,7 @@ function App() {
               isAnalyzing={isAnalyzing}
               onFenChange={handleFenChange}
               onFenLoad={handleFenLoad}
+              onRandomPosition={handleRandomPosition}
               onQueryTypeChange={setQueryType}
               onAnalyze={handleAnalyze}
             />

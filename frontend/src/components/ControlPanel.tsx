@@ -9,6 +9,7 @@ interface ControlPanelProps {
   isAnalyzing: boolean;
   onFenChange: (fen: string) => void;
   onFenLoad: () => void;
+  onRandomPosition: () => void;
   onQueryTypeChange: (qt: QueryType) => void;
   onAnalyze: () => void;
 }
@@ -20,6 +21,7 @@ export function ControlPanel({
   isAnalyzing,
   onFenChange,
   onFenLoad,
+  onRandomPosition,
   onQueryTypeChange,
   onAnalyze,
 }: ControlPanelProps) {
@@ -32,6 +34,7 @@ export function ControlPanel({
         fenError={fenError}
         onChange={onFenChange}
         onLoad={onFenLoad}
+        onRandomPosition={onRandomPosition}
       />
       <div className="flex gap-2 items-center">
         <QuerySelector value={queryType} onChange={onQueryTypeChange} compact />
