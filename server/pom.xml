@@ -78,39 +78,19 @@
 			<artifactId>kjar</artifactId>
 			<version>${chess_endgame_analyzer.version}</version>
 		</dependency>
+
+		<dependency>
+			<groupId>org.drools</groupId>
+			<artifactId>drools-templates</artifactId>
+			<version>${drools.version}</version>
+		</dependency>
 	</dependencies>
 
 	<build>
 		<plugins>
 			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-antrun-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>compile-java-lang-compiler-stub</id>
-						<phase>process-resources</phase>
-						<goals><goal>run</goal></goals>
-						<configuration>
-							<target>
-								<mkdir dir="${project.build.directory}/compiler-stub"/>
-								<exec executable="${java.home}/bin/javac" failonerror="true">
-									<arg value="--patch-module"/>
-									<arg value="java.base=${project.basedir}/src/main/stub"/>
-									<arg value="-d"/>
-									<arg value="${project.build.directory}/compiler-stub"/>
-									<arg value="${project.basedir}/src/main/stub/java/lang/Compiler.java"/>
-								</exec>
-							</target>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
-				<configuration>
-					<jvmArguments>--patch-module java.base=${project.build.directory}/compiler-stub</jvmArguments>
-				</configuration>
 			</plugin>
 		</plugins>
 	</build>

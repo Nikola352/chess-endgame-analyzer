@@ -5,7 +5,6 @@ import com.github.nikola352.chess_endgame_analyzer.model.models.Position;
 import com.github.nikola352.chess_endgame_analyzer.server.dto.*;
 import org.kie.api.KieBase;
 import org.kie.api.definition.type.FactType;
-import org.kie.api.runtime.KieContainer;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.rule.QueryResults;
 import org.springframework.stereotype.Service;
@@ -17,17 +16,16 @@ import java.util.List;
 
 @Service
 public class ChessEndgameService {
-    private final KieContainer kieContainer;
+    private final KieBase kieBase;
     private final FenParser fenParser;
     private final FactType adjacentSquareType;
     private final FactType candidateMoveType;
     private final FactType derivedFactType;
     private final FactType recommendationType;
 
-    public ChessEndgameService(KieContainer kieContainer, FenParser fenParser) {
-        this.kieContainer = kieContainer;
+    public ChessEndgameService(KieBase kieBase, FenParser fenParser) {
+        this.kieBase = kieBase;
         this.fenParser = fenParser;
-        KieBase kieBase = kieContainer.getKieBase("ChessEndgameKBase");
         this.adjacentSquareType = kieBase.getFactType("rules", "AdjacentSquare");
         this.candidateMoveType = kieBase.getFactType("rules", "CandidateMove");
         this.derivedFactType = kieBase.getFactType("rules", "DerivedFact");
@@ -72,7 +70,7 @@ public class ChessEndgameService {
     }
 
     private KieSession prepareSession(AnalyzeRequestDto request, FenParser.Result parsed) {
-        KieSession kSession = kieContainer.newKieSession("ChessEndgameKSession");
+        KieSession kSession = kieBase.newKieSession();
 
         kSession.insert(parsed.getPosition());
         for (Piece piece : parsed.getPieces()) {
