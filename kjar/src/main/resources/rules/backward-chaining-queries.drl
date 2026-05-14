@@ -76,6 +76,13 @@ query "isStalemateBishopPawnPossible"
     Piece(type == Piece.Type.KING, color == $defSide, $dkSq : square, square.substring(0,1) == $pFile)
 end
 
+// Query 6c - Draw when defending king is within the pawn's promotion square.
+// KING_IN_SQUARE is inserted by forward rules before the query is called.
+query "isKingInSquareDraw"
+    DerivedFact(type == "KING_IN_SQUARE")
+    not DerivedFact(type == "KEY_SQUARE_OCCUPIED")
+end
+
 // Query 7 - Top-level draw query: the position is a theoretical draw if any sub-query succeeds.
 query "isTheoreticalDraw"
     isDirectOppositionDraw()
@@ -89,4 +96,6 @@ query "isTheoreticalDraw"
     isStalemateRookPawnPossible()
     or
     isStalemateBishopPawnPossible()
+    or
+    isKingInSquareDraw()
 end

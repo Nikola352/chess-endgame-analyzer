@@ -30,6 +30,20 @@ then
     ));
 end
 
+// Rule 25b - Theoretical Draw: King In Square
+rule "Theoretical Draw - King In Square"
+when
+    DerivedFact( type == "KING_IN_SQUARE" )
+    not DerivedFact( type == "KEY_SQUARE_OCCUPIED" )
+    not DerivedFact( type == "THEORETICAL_DRAW" )
+then
+    insert( new DerivedFact(
+        "THEORETICAL_DRAW", null,
+        "Defending king is within the pawn's promotion square — the king catches the pawn before it queens. Draw with correct play. (de la Villa, Ending 1, p.27)",
+        2, "de la Villa, Ending 1, p.27"
+    ));
+end
+
 // Rule 26 - Lucena Position Confirmed - Win
 // Verify both rooks are still present before committing to the Lucena conclusion.
 rule "Lucena Win Confirmed"
