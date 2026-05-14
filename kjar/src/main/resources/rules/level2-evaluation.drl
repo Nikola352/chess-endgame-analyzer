@@ -90,7 +90,6 @@ end
 rule "Philidor Draw"
 when
     DerivedFact( type == "PHILIDOR_CANDIDATE", $s : side )
-    Position( $stm : sideToMove, sideToMove != $s )
     not DerivedFact( type == "PHILIDOR_DRAW" )
 then
     insert( new DerivedFact(

@@ -41,11 +41,10 @@ query "isWrongColorBishopDraw"
     canKingReach($dkSq, $corner, 4;)
 end
 
-// Query 4 - Draw when Philidor defense is set up and the defending side is to move.
+// Query 4 - Draw when Philidor defense is set up.
 // PHILIDOR_CANDIDATE already encodes: defending king on 8th rank, defending rook on 6th rank.
 query "isPhilidorDraw"
-    DerivedFact(type == "PHILIDOR_CANDIDATE", $attackSide : side)
-    Position(sideToMove != $attackSide)
+    DerivedFact(type == "PHILIDOR_CANDIDATE")
 end
 
 // Query 5 - Draw when rook pawn on edge, no key square occupied, and defending king can

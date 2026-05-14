@@ -85,9 +85,8 @@ end
 // Rule 38 - Recommend Philidor Defense Maintenance
 rule "Recommend Philidor Defense"
 when
-    DerivedFact( type == "PHILIDOR_CANDIDATE", $s : side )
+    DerivedFact( type == "PHILIDOR_CANDIDATE" )
     DerivedFact( type == "PHILIDOR_DRAW" )
-    Position( sideToMove != $s )
     not Recommendation()
 then
     insert( new Recommendation(
