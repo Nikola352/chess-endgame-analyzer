@@ -44,6 +44,23 @@ then
     ));
 end
 
+// Rule 25c - Winning Position: King Leads Pawn
+// When the attacking king is directly in front of its pawn it can escort it to promotion.
+// Guard against THEORETICAL_DRAW so rook-pawn corner draws are not overridden.
+rule "Winning Position - King Leads Pawn"
+when
+    DerivedFact( type == "KING_PAWN_ENDGAME" )
+    DerivedFact( type == "KING_LEADS_PAWN", $s : side )
+    not DerivedFact( type == "WINNING_POSITION", side == $s )
+    not DerivedFact( type == "THEORETICAL_DRAW" )
+then
+    insert( new DerivedFact(
+        "WINNING_POSITION", $s,
+        "Attacking king is directly in front of its pawn — the king escorts the pawn to promotion. (de la Villa, Ending 2, p.29; Silman, Part Three (Class D), p.61)",
+        2, "de la Villa, Ending 2, p.29"
+    ));
+end
+
 // Rule 26 - Lucena Position Confirmed - Win
 // Verify both rooks are still present before committing to the Lucena conclusion.
 rule "Lucena Win Confirmed"

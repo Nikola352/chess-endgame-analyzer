@@ -14,7 +14,7 @@ when
     $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.WHITE,
                 $psq : square,
                 square.substring(0, 1).equals("@{pawnFile}"),
-                square.codePointAt(1) <= 54 )
+                square.codePointAt(1) <= 53 )
     not KeySquare( pawnFile == "@{pawnFile}", pawnColor == Piece.Color.WHITE,
                    square.substring(0, 1).equals("@{keyFile}") )
 then
@@ -33,7 +33,7 @@ when
     $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.BLACK,
                 $psq : square,
                 square.substring(0, 1).equals("@{pawnFile}"),
-                square.codePointAt(1) >= 51 )
+                square.codePointAt(1) >= 52 )
     not KeySquare( pawnFile == "@{pawnFile}", pawnColor == Piece.Color.BLACK,
                    square.substring(0, 1).equals("@{keyFile}") )
 then

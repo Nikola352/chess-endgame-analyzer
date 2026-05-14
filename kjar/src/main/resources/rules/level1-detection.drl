@@ -62,7 +62,9 @@ then
 end
 
 // Rule 14b - Rule of the Square: White pawn promotes freely (black to move)
-// When black moves first, the effective square shrinks by one rank.
+// Defending king moves first: it gets N king moves before the pawn's Nth push (promotion).
+// King can capture the just-promoted queen if distance <= N+1 (be adjacent when queen lands).
+// So pawn promotes freely only when distance > N+1.
 rule "Rule of Square - White pawn, black to move"
 when
     DerivedFact( type == "KING_PAWN_ENDGAME" )
@@ -70,7 +72,7 @@ when
     $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.WHITE, $ps : square )
     Piece( type == Piece.Type.KING, color == Piece.Color.BLACK, $bk : square,
            Math.max( Math.abs($bk.codePointAt(0) - $ps.codePointAt(0)), Math.abs($bk.codePointAt(1) - 56) )
-               > (56 - $ps.codePointAt(1) - 1) )
+               > (56 - $ps.codePointAt(1) + 1) )
     not DerivedFact( type == "PAWN_PROMOTES_FREELY", side == Piece.Color.WHITE )
 then
     insert( new DerivedFact(
@@ -106,7 +108,7 @@ when
     $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.BLACK, $ps : square )
     Piece( type == Piece.Type.KING, color == Piece.Color.WHITE, $wk : square,
            Math.max( Math.abs($wk.codePointAt(0) - $ps.codePointAt(0)), Math.abs($wk.codePointAt(1) - 49) )
-               > ($ps.codePointAt(1) - 49 - 1) )
+               > ($ps.codePointAt(1) - 49 + 1) )
     not DerivedFact( type == "PAWN_PROMOTES_FREELY", side == Piece.Color.BLACK )
 then
     insert( new DerivedFact(
@@ -119,6 +121,11 @@ end
 // Rules 14e-14h - King In Square: defending king CAN catch the pawn (draw).
 // These are the complements of Rules 14-14d: fire when the condition is <=, not >.
 
+// KING_IN_SQUARE: defending king can catch the pawn AND the attacking king is too far to escort it.
+// The second Piece pattern guards that the attacking king is also outside the promotion square
+// (Chebyshev distance > moves_to_queen), so it cannot shield the pawn from the defending king.
+// If the attacking king is within the square it can interfere; key-square and opposition rules cover that.
+
 rule "King In Square - White pawn, white to move"
 when
     DerivedFact( type == "KING_PAWN_ENDGAME" )
@@ -127,11 +134,14 @@ when
     Piece( type == Piece.Type.KING, color == Piece.Color.BLACK, $bk : square,
            Math.max( Math.abs($bk.codePointAt(0) - $ps.codePointAt(0)), Math.abs($bk.codePointAt(1) - 56) )
                <= (56 - $ps.codePointAt(1)) )
+    Piece( type == Piece.Type.KING, color == Piece.Color.WHITE, $wk : square,
+           Math.max( Math.abs($wk.codePointAt(0) - $ps.codePointAt(0)), Math.abs($wk.codePointAt(1) - 56) )
+               > (56 - $ps.codePointAt(1)) )
     not DerivedFact( type == "KING_IN_SQUARE" )
 then
     insert( new DerivedFact(
         "KING_IN_SQUARE", Piece.Color.BLACK,
-        "Defending king is within the pawn's promotion square — the king can intercept the pawn before it queens. (de la Villa, Ending 1, p.27)",
+        "Defending king is within the pawn's promotion square and the attacking king cannot assist — the king intercepts the pawn before it queens. (de la Villa, Ending 1, p.27)",
         1, "de la Villa, Ending 1, p.27"
     ));
 end
@@ -143,12 +153,15 @@ when
     $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.WHITE, $ps : square )
     Piece( type == Piece.Type.KING, color == Piece.Color.BLACK, $bk : square,
            Math.max( Math.abs($bk.codePointAt(0) - $ps.codePointAt(0)), Math.abs($bk.codePointAt(1) - 56) )
-               <= (56 - $ps.codePointAt(1) - 1) )
+               <= (56 - $ps.codePointAt(1) + 1) )
+    Piece( type == Piece.Type.KING, color == Piece.Color.WHITE, $wk : square,
+           Math.max( Math.abs($wk.codePointAt(0) - $ps.codePointAt(0)), Math.abs($wk.codePointAt(1) - 56) )
+               > (56 - $ps.codePointAt(1)) )
     not DerivedFact( type == "KING_IN_SQUARE" )
 then
     insert( new DerivedFact(
         "KING_IN_SQUARE", Piece.Color.BLACK,
-        "Defending king is within the pawn's promotion square — with the move, the king can intercept the pawn before it queens. (de la Villa, Ending 1, p.27)",
+        "Defending king is within the pawn's promotion square and the attacking king cannot assist — with the move, the king intercepts the pawn before it queens. (de la Villa, Ending 1, p.27)",
         1, "de la Villa, Ending 1, p.27"
     ));
 end
@@ -161,11 +174,14 @@ when
     Piece( type == Piece.Type.KING, color == Piece.Color.WHITE, $wk : square,
            Math.max( Math.abs($wk.codePointAt(0) - $ps.codePointAt(0)), Math.abs($wk.codePointAt(1) - 49) )
                <= ($ps.codePointAt(1) - 49) )
+    Piece( type == Piece.Type.KING, color == Piece.Color.BLACK, $bk : square,
+           Math.max( Math.abs($bk.codePointAt(0) - $ps.codePointAt(0)), Math.abs($bk.codePointAt(1) - 49) )
+               > ($ps.codePointAt(1) - 49) )
     not DerivedFact( type == "KING_IN_SQUARE" )
 then
     insert( new DerivedFact(
         "KING_IN_SQUARE", Piece.Color.WHITE,
-        "Defending king is within the pawn's promotion square — the king can intercept the pawn before it queens. (de la Villa, Ending 1, p.27)",
+        "Defending king is within the pawn's promotion square and the attacking king cannot assist — the king intercepts the pawn before it queens. (de la Villa, Ending 1, p.27)",
         1, "de la Villa, Ending 1, p.27"
     ));
 end
@@ -177,12 +193,15 @@ when
     $p : Piece( type == Piece.Type.PAWN, color == Piece.Color.BLACK, $ps : square )
     Piece( type == Piece.Type.KING, color == Piece.Color.WHITE, $wk : square,
            Math.max( Math.abs($wk.codePointAt(0) - $ps.codePointAt(0)), Math.abs($wk.codePointAt(1) - 49) )
-               <= ($ps.codePointAt(1) - 49 - 1) )
+               <= ($ps.codePointAt(1) - 49 + 1) )
+    Piece( type == Piece.Type.KING, color == Piece.Color.BLACK, $bk : square,
+           Math.max( Math.abs($bk.codePointAt(0) - $ps.codePointAt(0)), Math.abs($bk.codePointAt(1) - 49) )
+               > ($ps.codePointAt(1) - 49) )
     not DerivedFact( type == "KING_IN_SQUARE" )
 then
     insert( new DerivedFact(
         "KING_IN_SQUARE", Piece.Color.WHITE,
-        "Defending king is within the pawn's promotion square — with the move, the king can intercept the pawn before it queens. (de la Villa, Ending 1, p.27)",
+        "Defending king is within the pawn's promotion square and the attacking king cannot assist — with the move, the king intercepts the pawn before it queens. (de la Villa, Ending 1, p.27)",
         1, "de la Villa, Ending 1, p.27"
     ));
 end

@@ -4,18 +4,40 @@ import com.github.nikola352.chess_endgame_analyzer.model.models.Piece;
 import com.github.nikola352.chess_endgame_analyzer.model.models.Position;
 
 // Rule 35 - Recommend King Approach to Key Square
+// Not applicable when the pawn has reached the 6th rank (key square concept does not cover
+// that stage) or when the king already leads the pawn (a different technique applies).
 rule "Recommend King to Key Square"
 when
     DerivedFact( type == "WINNING_POSITION", $s : side )
     DerivedFact( type == "KING_PAWN_ENDGAME" )
     not DerivedFact( type == "KEY_SQUARE_OCCUPIED" )
     not DerivedFact( type == "PAWN_PROMOTES_FREELY" )
+    not DerivedFact( type == "PAWN_ON_SIXTH_RANK", side == $s )
+    not DerivedFact( type == "KING_LEADS_PAWN", side == $s )
     not Recommendation()
 then
     insert( new Recommendation(
         "KING_TO_KEY_SQUARE",
         "Advance the attacking king toward the key squares for this pawn. Maneuver the king to one of the key squares (two ranks ahead of the pawn, spanning its file and adjacent files). Push the pawn only once the king has secured a key square — premature pawn advances waste tempo and may allow the defending king to blockade.",
         "de la Villa, Ending 3, p.33"
+    ));
+end
+
+// Rule 35c - Recommend Escort Pawn to Promotion (king leads pawn or pawn on 6th rank)
+// The key-square concept does not apply once the pawn reaches the 6th rank.
+// The correct technique is to step the king aside and escort the pawn to promotion.
+rule "Recommend Escort Pawn to Promotion"
+salience 5
+when
+    DerivedFact( type == "WINNING_POSITION", $s : side )
+    DerivedFact( type == "KING_PAWN_ENDGAME" )
+    DerivedFact( type == "KING_LEADS_PAWN", side == $s )
+    not Recommendation()
+then
+    insert( new Recommendation(
+        "ESCORT_PAWN",
+        "The attacking king is directly in front of its pawn. Step the king sideways or diagonally to allow the pawn to advance — do not push the pawn while the king blocks it. Once the pawn moves forward, resume leading. The defending king cannot stop both pieces; escort the pawn rank by rank until it promotes.",
+        "de la Villa, Ending 2, p.29; Silman, Part Three (Class D), p.61"
     ));
 end
 
