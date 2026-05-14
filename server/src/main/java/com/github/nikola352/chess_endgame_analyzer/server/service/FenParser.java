@@ -9,9 +9,6 @@ import java.util.List;
 
 @Service
 public class FenParser {
-    private static final String WHITE = "WHITE";
-    private static final String BLACK = "BLACK";
-
     public static class Result {
         private final Position position;
         private final List<Piece> pieces;
@@ -53,7 +50,7 @@ public class FenParser {
             }
         }
 
-        String sideToMoveStr = sideToMove.equals("w") ? WHITE : BLACK;
+        Piece.Color sideToMoveStr = sideToMove.equals("w") ? Piece.Color.WHITE : Piece.Color.BLACK;
         Position position = new Position(fen, sideToMoveStr, null);
         return new Result(position, pieces);
     }

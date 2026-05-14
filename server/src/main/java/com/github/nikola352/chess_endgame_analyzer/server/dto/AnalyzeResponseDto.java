@@ -1,5 +1,7 @@
 package com.github.nikola352.chess_endgame_analyzer.server.dto;
 
+import com.github.nikola352.chess_endgame_analyzer.model.models.Piece;
+
 import java.util.List;
 
 public class AnalyzeResponseDto {
@@ -11,11 +13,11 @@ public class AnalyzeResponseDto {
     private final CandidateMoveDto candidateMove;
     private final Boolean theoreticalDraw;
 
-    public AnalyzeResponseDto(String fen, String sideToMove, String endgameType,
-                               List<DerivedFactDto> derivedFacts, RecommendationDto recommendation,
-                               CandidateMoveDto candidateMove, Boolean theoreticalDraw) {
+    public AnalyzeResponseDto(String fen, Piece.Color sideToMove, String endgameType,
+                              List<DerivedFactDto> derivedFacts, RecommendationDto recommendation,
+                              CandidateMoveDto candidateMove, Boolean theoreticalDraw) {
         this.fen = fen;
-        this.sideToMove = sideToMove;
+        this.sideToMove = sideToMove.name();
         this.endgameType = endgameType;
         this.derivedFacts = derivedFacts;
         this.recommendation = recommendation;

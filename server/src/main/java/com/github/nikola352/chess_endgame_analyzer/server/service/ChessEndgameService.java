@@ -5,6 +5,10 @@ import com.github.nikola352.chess_endgame_analyzer.model.models.Position;
 import com.github.nikola352.chess_endgame_analyzer.server.dto.*;
 import org.kie.api.KieBase;
 import org.kie.api.definition.type.FactType;
+import org.kie.api.event.rule.AfterMatchFiredEvent;
+import org.kie.api.event.rule.DefaultAgendaEventListener;
+import org.kie.api.event.rule.DefaultRuleRuntimeEventListener;
+import org.kie.api.event.rule.ObjectInsertedEvent;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.rule.QueryResults;
 import org.springframework.stereotype.Service;
@@ -12,7 +16,10 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class ChessEndgameService {
@@ -39,6 +46,24 @@ public class ChessEndgameService {
         FenParser.Result parsed = fenParser.parse(request.getFen());
         KieSession kSession = prepareSession(request, parsed);
         try {
+            kSession.addEventListener(new DefaultAgendaEventListener() {
+                @Override
+                public void afterMatchFired(AfterMatchFiredEvent event) {
+                    System.out.println("FIRED: " + event.getMatch().getRule().getName());
+                }
+            });
+
+            Map<Object, Integer> insertionOrder = new IdentityHashMap<>();
+            AtomicInteger insertCounter = new AtomicInteger();
+            kSession.addEventListener(new DefaultRuleRuntimeEventListener() {
+                @Override
+                public void objectInserted(ObjectInsertedEvent event) {
+                    if (event.getObject().getClass().getSimpleName().equals("DerivedFact")) {
+                        insertionOrder.put(event.getObject(), insertCounter.getAndIncrement());
+                    }
+                }
+            });
+
             kSession.fireAllRules();
 
             Boolean theoreticalDraw = null;
@@ -47,7 +72,7 @@ public class ChessEndgameService {
                 theoreticalDraw = qr.iterator().hasNext();
             }
 
-            List<DerivedFactDto> derivedFacts = collectDerivedFacts(kSession);
+            List<DerivedFactDto> derivedFacts = collectDerivedFacts(kSession, insertionOrder);
             RecommendationDto recommendation = collectRecommendation(kSession);
             CandidateMoveDto candidateMove = collectCandidateMove(kSession);
 
@@ -124,12 +149,11 @@ public class ChessEndgameService {
             default:  pieceStr = Piece.Type.PAWN.name(); break;
         }
 
-        String sideToMove = parsed.getPosition().getSideToMove();
-        Piece.Color movingColor = "WHITE".equals(sideToMove) ? Piece.Color.WHITE : Piece.Color.BLACK;
+        Piece.Color sideToMove = parsed.getPosition().getSideToMove();
         Piece.Type movingType = Piece.Type.valueOf(pieceStr);
 
         String fromSquare = parsed.getPieces().stream()
-                .filter(p -> p.getType() == movingType && p.getColor() == movingColor)
+                .filter(p -> p.getType() == movingType && p.getColor() == sideToMove)
                 .map(Piece::getSquare)
                 .findFirst()
                 .orElse(null);
@@ -148,7 +172,7 @@ public class ChessEndgameService {
         }
     }
 
-    private List<DerivedFactDto> collectDerivedFacts(KieSession kSession) {
+    private List<DerivedFactDto> collectDerivedFacts(KieSession kSession, Map<Object, Integer> insertionOrder) {
         Collection<?> objects = kSession.getObjects(
                 o -> o.getClass().getSimpleName().equals("DerivedFact"));
         List<DerivedFactDto> result = new ArrayList<>();
@@ -159,9 +183,11 @@ public class ChessEndgameService {
             String explanation = (String) derivedFactType.get(obj, "explanation");
             int level = (Integer) derivedFactType.get(obj, "level");
             String reference = (String) derivedFactType.get(obj, "reference");
-            result.add(new DerivedFactDto(type, side, explanation, level, reference));
+            int order = insertionOrder.getOrDefault(obj, Integer.MAX_VALUE);
+            result.add(new DerivedFactDto(type, side, explanation, level, reference, order));
         }
-        result.sort(Comparator.comparingInt(DerivedFactDto::getLevel).thenComparing(DerivedFactDto::getType));
+        result.sort(Comparator.comparingInt(DerivedFactDto::getLevel)
+                .thenComparingInt(DerivedFactDto::getInsertionOrder));
         return result;
     }
 

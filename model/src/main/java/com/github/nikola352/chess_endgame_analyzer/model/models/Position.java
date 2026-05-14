@@ -4,13 +4,13 @@ import java.util.Objects;
 
 public class Position {
     private String fen;
-    private String sideToMove;
+    private Piece.Color sideToMove;
     private String endgameType;
 
     public Position() {
     }
 
-    public Position(String fen, String sideToMove, String endgameType) {
+    public Position(String fen, Piece.Color sideToMove, String endgameType) {
         this.fen = fen;
         this.sideToMove = sideToMove;
         this.endgameType = endgameType;
@@ -24,11 +24,11 @@ public class Position {
         this.fen = fen;
     }
 
-    public String getSideToMove() {
+    public Piece.Color getSideToMove() {
         return sideToMove;
     }
 
-    public void setSideToMove(String sideToMove) {
+    public void setSideToMove(Piece.Color sideToMove) {
         this.sideToMove = sideToMove;
     }
 
