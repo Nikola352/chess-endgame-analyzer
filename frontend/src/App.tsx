@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Chess } from "chess.js";
-import type { QueryType } from "./types";
+import type { AnalyzeResponse, QueryType } from "./types";
+import { analyzePosition } from "./api";
 import { ChessBoard } from "./components/ChessBoard";
 import { ControlPanel } from "./components/ControlPanel";
 import { AnalysisPlaceholder } from "./components/AnalysisPlaceholder";
+import { AnalysisResults } from "./components/AnalysisResults";
 
 const DEFAULT_FEN = "8/k7/8/P7/8/8/1K6/2B5 w - - 0 1";
 
@@ -14,6 +16,8 @@ function App() {
   const [candidateMove, setCandidateMove] = useState("");
   const [fenError, setFenError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzeResult, setAnalyzeResult] = useState<AnalyzeResponse | null>(null);
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
   function handleFenChange(fen: string) {
     setInputFen(fen);
@@ -30,9 +34,21 @@ function App() {
     }
   }
 
-  function handleAnalyze() {
+  async function handleAnalyze() {
     setIsAnalyzing(true);
-    setTimeout(() => setIsAnalyzing(false), 1500);
+    setAnalyzeError(null);
+    try {
+      const result = await analyzePosition({
+        fen: activeFen,
+        queryType,
+        candidateMove: candidateMove.trim() || undefined,
+      });
+      setAnalyzeResult(result);
+    } catch (e) {
+      setAnalyzeError(e instanceof Error ? e.message : "Analysis failed");
+    } finally {
+      setIsAnalyzing(false);
+    }
   }
 
   return (
@@ -68,7 +84,15 @@ function App() {
               onCandidateMoveChange={setCandidateMove}
               onAnalyze={handleAnalyze}
             />
-            <AnalysisPlaceholder />
+            {analyzeError && (
+              <div className="text-red-400 text-sm border border-red-700 rounded p-3">
+                {analyzeError}
+              </div>
+            )}
+            {analyzeResult
+              ? <AnalysisResults result={analyzeResult} />
+              : <AnalysisPlaceholder />
+            }
           </div>
         </div>
       </main>
