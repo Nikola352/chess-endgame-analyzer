@@ -2,6 +2,8 @@ package rules;
 
 import com.github.nikola352.chess_endgame_analyzer.model.models.Piece;
 import com.github.nikola352.chess_endgame_analyzer.model.models.Position;
+import com.github.nikola352.chess_endgame_analyzer.model.models.DerivedFact;
+import com.github.nikola352.chess_endgame_analyzer.model.models.AdjacentSquare;
 
 // Query 1 - Recursive king path reachability via AdjacentSquare graph.
 // Base case: from == to (king already at destination).

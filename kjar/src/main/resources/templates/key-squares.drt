@@ -5,6 +5,8 @@ keyFile
 package rules;
 
 import com.github.nikola352.chess_endgame_analyzer.model.models.Piece;
+import com.github.nikola352.chess_endgame_analyzer.model.models.DerivedFact;
+import com.github.nikola352.chess_endgame_analyzer.model.models.KeySquare;
 
 template "white-key-file-rules"
 
