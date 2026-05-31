@@ -1,8 +1,15 @@
 package com.github.nikola352.chess_endgame_analyzer.model.models;
 
 import java.util.Objects;
+import java.util.Set;
 
 public class Piece {
+    private static final Set<String> CORNER_SQUARES = Set.of("a1", "a8", "h1", "h8");
+
+    public static boolean isCornerSquare(String sq) {
+        return CORNER_SQUARES.contains(sq);
+    }
+
     public enum Color {
         WHITE, BLACK,
     }

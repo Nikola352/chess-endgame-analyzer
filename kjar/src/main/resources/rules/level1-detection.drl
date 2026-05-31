@@ -340,8 +340,7 @@ rule "Knight on the Edge"
 when
     DerivedFact( type == "ROOK_VS_KNIGHT" )
     $kn : Piece( type == Piece.Type.KNIGHT, $knColor : color, $knSq : square,
-                 square.codePointAt(0) == 97 || square.codePointAt(0) == 104
-              || square.codePointAt(1) == 49 || square.codePointAt(1) == 56 )
+                 square.substring(0, 1) in ("a", "h") || square.substring(1) in ("1", "8") )
     not DerivedFact( type == "KNIGHT_ON_EDGE" )
 then
     insert( new DerivedFact(
